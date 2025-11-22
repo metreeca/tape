@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { log } from "./index";
+import { log } from "./index.js";
 
 
 describe("log(function)", () => {

@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@logtape/logtape": "^1.2.0",
-    "@metreeca/core": "^0.9.9"
+    "@metreeca/core": "^0.9.11"
   },
   "devDependencies": {
     "five-server": "^0.4.5",

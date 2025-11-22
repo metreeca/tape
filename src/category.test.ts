@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { category } from "./category";
+import { category } from "./category.js";
 
 
 describe("parse()", () => {

@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm run build:*)",
       "WebSearch",
-      "Skill(typedoc-writer)"
+      "Skill(typedoc-writer)",
+      "Bash(npx tsc)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []
