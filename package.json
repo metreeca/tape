@@ -1,6 +1,6 @@
 {
   "name": "@metreeca/tape",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "A simplified TypeScript facade for the LogTape logging framework.",
   "keywords": [
     "typescript",
