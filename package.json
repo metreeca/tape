@@ -1,0 +1,56 @@
+{
+  "name": "@metreeca/tape",
+  "version": "0.9.0",
+  "description": "A simplified TypeScript facade for the LogTape logging framework.",
+  "keywords": [
+    "typescript",
+    "logging",
+    "logtape"
+  ],
+  "homepage": "https://metreeca.github.io/tape/",
+  "bugs": {
+    "url": "https://github.com/metreeca/tape/issues",
+    "email": "info@metreeca.com"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Metreeca",
+    "email": "info@metreeca.com",
+    "url": "https://www.metreeca.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metreeca/tape.git"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "clean": "rm -rf dist docs node_modules",
+    "setup": "npm install && npm audit fix",
+    "build": "rm -rf dist docs && npx tsc && npx typedoc",
+    "check": "npx vitest run",
+    "watch": "npx typedoc && (npx typedoc --watch & npx five-server docs --open)"
+  },
+  "dependencies": {
+    "@logtape/logtape": "^1.2.0",
+    "@metreeca/core": "^0.9.8"
+  },
+  "devDependencies": {
+    "five-server": "^0.4.5",
+    "typedoc": "^0.28.14",
+    "typedoc-github-theme": "^0.3.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.13"
+  }
+}
