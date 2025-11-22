@@ -15,7 +15,7 @@
  */
 
 /**
- * Simplified logging facade over LogTape.
+ * Simplified facade for the LogTape logging framework.
  *
  * Provides the {@link log} function for logger retrieval and configuration with
  * automatic path-based categorization and zero-configuration defaults.
@@ -49,6 +49,15 @@ const prefixes = {
 	"error": "!!",
 	"fatal": "!!!"
 } as const;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Tracks whether LogTape was auto-configured on first logger retrieval.
+ * Used to allow explicit configuration to override auto-configuration.
+ */
+let auto = false;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,7 +160,11 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 		const c = category(a);
 
 		if ( c[0] === internal && getConfig() === null ) {
-			configureSync(std({}));
+			try {
+				configureSync(std({}));
+			} finally {
+				auto = true;
+			}
 		}
 
 		return getLogger(c);
@@ -159,18 +172,42 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 	} else if ( isArray<string>(a) ) {
 
 		if ( a[0] === internal && getConfig() === null ) {
-			configureSync(std({}));
+			try {
+				configureSync(std({}));
+			} finally {
+				auto = true;
+			}
 		}
 
 		return getLogger(a);
 
 	} else if ( isObject(a) && Object.values(a).every(isString) ) {
 
-		return configureSync(std(a as Record<string, string>));
+		const config = std(a as Record<string, string>);
+
+		if ( auto ) {
+			config.reset = true;
+		}
+
+		try {
+			return configureSync(config);
+		} finally {
+			auto = false;
+		}
 
 	} else {
 
-		return configureSync<S, F>(a as unknown as Config<S, F>);
+		const config = a as unknown as Config<S, F>;
+
+		if ( auto ) {
+			config.reset = true;
+		}
+
+		try {
+			return configureSync<S, F>(config);
+		} finally {
+			auto = false;
+		}
 
 	}
 

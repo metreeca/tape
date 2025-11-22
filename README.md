@@ -31,8 +31,6 @@ npm install @metreeca/tape
 > This section introduces essential concepts and common patterns: see the
 > [API reference](https://metreeca.github.io/tape/) for complete coverage.
 
-## Getting Started
-
 ```typescript
 import { log } from '@metreeca/tape';
 
