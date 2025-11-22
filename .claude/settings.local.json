@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "WebSearch"
+      "WebSearch",
+      "Skill(typedoc-writer)"
     ],
     "deny": [],
     "ask": []

@@ -15,11 +15,157 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { log } from "./index";
 
-describe("@metreeca/tape", () => {
 
-	it("should have tests", () => {
-		expect(true).toBe(true);
+describe("log(function)", () => {
+
+	it("should handle functions with no arguments", async () => {
+		const fn = log(async () => "success");
+		const result = await fn();
+		expect(result).toBe("success");
+	});
+
+	it("should handle functions with one argument", async () => {
+		const fn = log(async (x: number) => x*2);
+		const result = await fn(5);
+		expect(result).toBe(10);
+	});
+
+	it("should handle functions with multiple arguments", async () => {
+		const fn = log(async (x: number, y: string, z: boolean) => {
+			return `${x}-${y}-${z}`;
+		});
+		const result = await fn(42, "hello", true);
+		expect(result).toBe("42-hello-true");
+	});
+
+	it("should handle functions with different argument types", async () => {
+		const fn = log(async (
+			num: number,
+			str: string,
+			bool: boolean,
+			obj: { key: string },
+			arr: number[]
+		) => {
+			return { num, str, bool, obj, arr };
+		});
+
+		const result = await fn(
+			123,
+			"test",
+			false,
+			{ key: "value" },
+			[1, 2, 3]
+		);
+
+		expect(result).toEqual({
+			num: 123,
+			str: "test",
+			bool: false,
+			obj: { key: "value" },
+			arr: [1, 2, 3]
+		});
+	});
+
+	it("should catch errors and return undefined", async () => {
+		const errorFn = log(async (x: number) => {
+			throw new Error("Test error");
+		});
+
+		const result = await errorFn(5);
+		expect(result).toBeUndefined();
+	});
+
+	it("should log errors with the operator name", async () => {
+		async function namedFunction() {
+			throw new Error("Named function error");
+		}
+
+		const guarded = log(namedFunction);
+		const result = await guarded();
+
+		// Should return undefined when error occurs
+		expect(result).toBeUndefined();
+	});
+
+	it("should handle synchronous functions that return promises", async () => {
+		const fn = log((x: number) => Promise.resolve(x+1));
+		const result = await fn(10);
+		expect(result).toBe(11);
+	});
+
+	it("should handle async functions that throw", async () => {
+		const fn = log(async (x: number, y: number) => {
+			if ( x === 0 ) {
+				throw new Error("Division by zero");
+			}
+			return y/x;
+		});
+
+		const success = await fn(2, 10);
+		expect(success).toBe(5);
+
+		const failure = await fn(0, 10);
+		expect(failure).toBeUndefined();
+	});
+
+	it("should preserve type inference for return values", async () => {
+		const stringFn = log(async (x: number) => String(x));
+		const numberFn = log(async (x: string) => Number(x));
+		const objectFn = log(async () => ({ key: "value" }));
+
+		const str = await stringFn(123);
+		const num = await numberFn("456");
+		const obj = await objectFn();
+
+		// These should pass TypeScript type checking
+		expect(typeof str).toBe("string");
+		expect(typeof num).toBe("number");
+		expect(typeof obj).toBe("object");
+	});
+
+	it("should handle functions with rest parameters", async () => {
+		const sum = log(async (...numbers: number[]) => {
+			return numbers.reduce((acc, n) => acc+n, 0);
+		});
+
+		expect(await sum(1, 2, 3, 4, 5)).toBe(15);
+		expect(await sum()).toBe(0);
+		expect(await sum(42)).toBe(42);
+	});
+
+	it("should handle synchronous functions without wrapping in Promise", () => {
+		const syncFn = log((x: number) => x*2);
+		const result = syncFn(5);
+
+		// Result should NOT be a Promise for sync functions
+		expect(result).not.toBeInstanceOf(Promise);
+		expect(result).toBe(10);
+	});
+
+	it("should handle synchronous functions that throw", () => {
+		const syncFn = log((x: number) => {
+			if ( x === 0 ) {
+				throw new Error("Zero not allowed");
+			}
+			return x*2;
+		});
+
+		const success = syncFn(5);
+		expect(success).toBe(10);
+
+		const failure = syncFn(0);
+		expect(failure).toBeUndefined();
+	});
+
+	it("should preserve Promise for async functions", async () => {
+		const asyncFn = log(async (x: number) => x*2);
+		const result = asyncFn(5);
+
+		// Result should be a Promise for async functions
+		expect(result).toBeInstanceOf(Promise);
+		expect(await result).toBe(10);
 	});
 
 });

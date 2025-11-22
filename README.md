@@ -5,13 +5,13 @@
 A simplified TypeScript facade for the [LogTape](https://logtape.org/) logging framework.
 
 **@metreeca/tape** provides an opinionated, easy-to-use logging facade for TypeScript/JavaScript applications. It
-streamlines LogTape configuration with automatic zero-code logger setup for local codebase modules and utility functions
-for common logging tasks. Key features include:
+streamlines LogTape configuration with automatic zero-code logger setup for local codebase modules and built-in error
+handling for safe function execution. Key features include:
 
 - **Hierarchical categories** / Automatic category derivation from `import.meta.url`
 - **Zero-code setup** / Auto-configures console logging for internal project modules
 - **Simplified configuration** / Sensible defaults with easy level management
-- **Utility functions** / Message formatting, execution timing, and error handling
+- **Function guarding** / Automatic error logging with safe fallback to `undefined`
 
 # Installation
 
@@ -30,6 +30,30 @@ npm install @metreeca/tape
 >
 > This section introduces essential concepts and common patterns: see the
 > [API reference](https://metreeca.github.io/tape/) for complete coverage.
+
+## Getting Loggers
+
+Retrieve logger instances for different scopes.
+
+LogTape uses a [hierarchical category system](https://logtape.org/manual/categories) for organizing loggers;
+**@metreeca/tape** automatically generates category arrays from `import.meta.url`, distinguishing between internal
+project code and external dependencies:
+
+- **Internal modules** (project code):
+  - Prefixed with `"."` (e.g., `[".", "utils", "helper"]`)
+  - Extracted from paths after `src/` directory
+  - Auto-configures console logging at `"info"` level on first use
+
+- **External modules** (from `node_modules/`):
+  - Non-scoped packages: Prefixed with `"@"` (e.g., `["@", "lodash", "map"]`)
+  - Scoped packages: Inherently prefixed (e.g., `["@metreeca", "pipe", "feeds"]`)
+  - Skips build directories (`dist`, `lib`, `build`, `out`)
+
+| File Path                                   | Category                   |
+|---------------------------------------------|----------------------------|
+| `file:///project/src/utils/logger.ts`       | `[".", "utils", "logger"]` |
+| `node_modules/lodash/map.js`                | `["@", "lodash", "map"]`   |
+| `node_modules/@metreeca/pipe/dist/index.js` | `["@metreeca", "pipe"]`    |
 
 ```typescript
 import { log } from '@metreeca/tape';
@@ -55,36 +79,41 @@ const root = log();
 root.info("Message from root logger");
 ```
 
-## Categories
+## Guarding Functions
 
-LogTape uses a hierarchical category system for organizing loggers. **@metreeca/tape** automatically generates category
-arrays from `import.meta.url`, distinguishing between internal project code and external dependencies:
+Wrap functions with automatic error logging and safe fallback to `undefined`:
 
-- **Internal modules** (project code):
-  - Prefixed with `"."` (e.g., `[".", "utils", "helper"]`)
-  - Extracted from paths after `src/` directory
-  - Auto-configures console logging at `"info"` level on first use
+```typescript
+// Wrap async functions
 
-- **External modules** (from `node_modules/`):
-  - Non-scoped packages: Prefixed with `"@"` (e.g., `["@", "lodash", "map"]`)
-  - Scoped packages: Inherently prefixed (e.g., `["@metreeca", "pipe", "feeds"]`)
-  - Skips build directories (`dist`, `lib`, `build`, `out`)
+const safeOperation = log(async (data: string) => {
+	return await riskyOperation(data); // This might throw
+});
 
-| File Path                                   | Category                   |
-|---------------------------------------------|----------------------------|
-| `file:///project/src/utils/logger.ts`       | `[".", "utils", "logger"]` |
-| `node_modules/lodash/map.js`                | `["@", "lodash", "map"]`   |
-| `node_modules/@metreeca/pipe/dist/index.js` | `["@metreeca", "pipe"]`    |
+// Returns undefined if error occurs, logs error automatically
 
-## Configuration
+const result = await safeOperation("input");
 
-Configure logging levels once at application startup. The `log()` function accepts simple path-to-level mappings:
+// Also works with synchronous functions
+
+const safeParse = log((json: string) => JSON.parse(json));
+
+const data = safeParse("invalid json"); // Returns undefined, logs error
+```
+
+## Configuring LogTape
+
+Configure logging levels using simple path-to-level mappings.
+
+Keys are slash-separated representations of LogTape category arrays. The leading `.` and `@` prefixes match
+auto-generated categories for internal modules and external packages respectively:
 
 ```typescript
 log({
-	".": "debug",        // All internal code at debug level
-	"./utils": "info",   // Specific internal module at info level
-	"@/lodash": "trace"  // Specific external package at trace level
+	".": "info",            // All internal code
+	"./utils": "debug",     // Specific internal module
+	"@/lodash": "trace",    // Specific non-scoped package
+	"@metreeca/pipe": "debug"  // Specific scoped package
 });
 ```
 
@@ -106,58 +135,6 @@ log({
 		}
 	]
 });
-```
-
-## Utilities
-
-### Message Extraction
-
-Extract readable messages from unknown values:
-
-```typescript
-import { message } from '@metreeca/tape';
-
-message(new Error("Failed"));  // "Failed"
-message(1234.56);              // "1,234.56"
-message("Custom message");     // "Custom message"
-```
-
-### Execution Timing
-
-Monitor execution time of synchronous or async operations:
-
-```typescript
-import { time } from '@metreeca/tape';
-
-// Async operation
-
-await time(
-	async () => fetch("/api/data"),
-	(result, elapsed) => logger.info(`Fetched in ${elapsed}ms`)
-);
-
-// Sync operation
-
-const result = time(
-	() => expensiveComputation(),
-	(value, elapsed) => logger.debug(`Computed in ${elapsed}ms`)
-);
-```
-
-### Error Handling
-
-Wrap functions with automatic error logging and safe fallback to `undefined`:
-
-```typescript
-import { guard } from '@metreeca/tape';
-
-const safeOperation = guard(async (data: string) => {
-	return await riskyOperation(data); // This might throw
-});
-
-// Returns undefined if error occurs, logs error automatically
-
-const result = await safeOperation("input");
 ```
 
 # Support
