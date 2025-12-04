@@ -5,7 +5,10 @@
       "WebSearch",
       "Skill(typedoc-writer)",
       "Bash(npx tsc)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Skill(product-analyst)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:npmtrends.com)"
     ],
     "deny": [],
     "ask": []
