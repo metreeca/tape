@@ -3,6 +3,17 @@ title: Project Guidelines
 description: Development guidelines and conventions for the @metreeca/tape package.
 ---
 
+> [!CAUTION]
+>
+> - **UNDER NO CIRCUMSTANCES** rearchitect or refactor unrelated code beyond the requested scope.
+> - **NEVER** make unsolicited changes or revert **unrelated** user edits.
+> - **ONLY** modify code when explicitly requested or clearly required.
+
+> [!IMPORTANT]
+>
+> - **ALL** relevant skills **MUST** be used when applicable without requiring continuous prompting.
+> - **SKILL** guidance **ALWAYS** supersedes internal general-purpose knowledge.
+
 # References
 
 ## LogTape Documentation
