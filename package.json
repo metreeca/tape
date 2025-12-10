@@ -50,7 +50,6 @@
   "devDependencies": {
     "five-server": "^0.4.5",
     "typedoc": "^0.28.14",
-    "typedoc-github-theme": "^0.3.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.13"
   }

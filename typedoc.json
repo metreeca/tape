@@ -1,7 +1,4 @@
 {
-  "plugin": [
-    "typedoc-github-theme"
-  ],
   "includeVersion": true,
   "sort": [
     "source-order"
