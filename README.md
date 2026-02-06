@@ -8,10 +8,10 @@ A simplified TypeScript facade for the [LogTape](https://logtape.org/) logging f
 streamlines LogTape configuration with automatic zero-code logger setup for local codebase modules and built-in error
 handling for safe function execution. Key features include:
 
-- **Hierarchical categories** / Automatic category derivation from `import.meta.url`
-- **Zero-code setup** / Auto-configures console logging for internal project modules
-- **Simplified configuration** / Sensible defaults with easy level management
-- **Function guarding** / Automatic error logging with safe fallback to `undefined`
+- **Hierarchical Categories**: automatic category derivation from `import.meta.url`
+- **Zero-Code Setup**: auto-configures console logging for internal project modules
+- **Simplified Configuration**: sensible defaults with easy level management
+- **Function Guarding**: automatic error logging with safe fallback to `undefined`
 
 # Installation
 
