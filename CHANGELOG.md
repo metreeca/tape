@@ -12,5 +12,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Narrow `log(config)` value type from `string` to `LogLevel`
 - Make `log(config)` idempotent, silently accepting repeated deep-equal configurations
 - Fix `log(config)` preserving user-supplied `reset` flag instead of silently overwriting it
+- Fix `log(config)` duplicate logger error when overriding default categories
 - Bump `@metreeca/core` dependency to `^0.9.18`
 

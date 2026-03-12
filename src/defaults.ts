@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Config, getConsoleSink, LoggerConfig, type LogLevel } from "@logtape/logtape";
+import { type Config, getConsoleSink, type LoggerConfig, type LogLevel } from "@logtape/logtape";
 
 /**
  * Visual severity prefixes for log levels.
@@ -46,6 +46,7 @@ const prefixes = {
  * @returns LogTape configuration object with console sink
  */
 export function defaults(config: Record<string, LogLevel>): Config<"console", never> {
+
 	return {
 
 		sinks: {
@@ -71,27 +72,28 @@ export function defaults(config: Record<string, LogLevel>): Config<"console", ne
 
 		},
 
-		loggers: [
+		loggers: <LoggerConfig<"console", never>[]>[
 
-			{
+			...("logtape/meta" in config ? [] : [{
 				category: ["logtape", "meta"],
 				lowestLevel: "warning",
 				sinks: ["console"]
-			},
+			}]),
 
-			{
+			...("." in config ? [] : [{
 				category: ["."],
 				lowestLevel: "info",
 				sinks: ["console"]
-			},
+			}]),
 
-			...Object.entries(config)
-				.map(([path, level]) => <LoggerConfig<"console", never>>{
-					category: path.split("/").filter(Boolean),
-					lowestLevel: level,
-					sinks: ["console"]
-				})
+			...Object.entries(config).map(([path, level]) => ({
+				category: path.split("/").filter(Boolean),
+				lowestLevel: level,
+				sinks: ["console"]
+			}))
 
 		]
+
 	};
+
 }

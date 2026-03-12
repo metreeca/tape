@@ -171,7 +171,6 @@ describe("log(function)", () => {
 
 });
 
-
 describe("log(config)", () => {
 
 	it("should auto-configure on first internal logger retrieval", async () => {
