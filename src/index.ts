@@ -24,7 +24,7 @@
  * @module
  */
 
-import { Config, configureSync, getConfig, getLogger, type Logger } from "@logtape/logtape";
+import { Config, configureSync, getConfig, getLogger, type LogLevel, type Logger } from "@logtape/logtape";
 import { isArray, isFunction, isObject, isString } from "@metreeca/core";
 import { message } from "@metreeca/core/report";
 import { category, internal } from "./category.js";
@@ -123,19 +123,18 @@ export function log<S extends string, F extends string>(config: Config<S, F>): v
 /**
  * Configures LogTape with category-to-level mappings.
  *
- * Configures LogTap with a single console logger using visual severity prefixes and a configuration derived from a
- * simplified representation mapping categories to minimum log levels:
+ * Configures LogTape with a single console logger using visual severity prefixes and a configuration derived from a
+ * simplified representation mapping categories to minimum {@link LogLevel | log levels}:
  *
  * - Each key represents a LogTape category array as a slash-separated path, with `"."` prefix
  *   for internal project code and `"@"` prefix for external dependencies (for instance,
  *   `"./utils"` for category `[".", "utils"]` or `"@/lodash"` for `["@", "lodash"]`).
  *
- * - Each value specifies the minimum log level (`"trace"`, `"debug"`, `"info"`,
- *   `"warning"`, `"error"`, `"fatal"`); invalid levels are filtered out.
+ * - Each value specifies the minimum {@link LogLevel} for the category.
  *
  * @param config Path-to-level mapping for logger configuration
  */
-export function log(config: Record<string, string>): void
+export function log(config: Record<string, LogLevel>): void
 
 /**
  * Wraps an asynchronous function with error handling and logging.
@@ -173,7 +172,7 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 	} else if ( isObject(a) && Object.values(a).every(isString) ) { // configure with path-to-level map
 
-		return configure(defaults(a as Record<string, string>));
+		return configure(defaults(a as Record<string, LogLevel>));
 
 	} else { // configure with full config object
 

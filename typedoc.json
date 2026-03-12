@@ -14,6 +14,11 @@
   "navigationLinks": {
     "GitHub": "https://github.com/metreeca/tape"
   },
+  "externalSymbolLinkMappings": {
+    "@logtape/logtape": {
+      "LogLevel": "https://jsr.io/@logtape/logtape/doc/~/LogLevel"
+    }
+  },
   "excludeExternals": true,
   "excludeReferences": true,
   "hideGenerator": true,

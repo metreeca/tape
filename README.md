@@ -103,10 +103,12 @@ const data = safeParse("invalid json"); // Returns undefined, logs error
 
 ## Configuring LogTape
 
-Configure logging levels using simple path-to-level mappings.
+Configure logging levels using simple category-to-[`LogLevel`](https://jsr.io/@logtape/logtape/doc/~/LogLevel)
+mappings.
 
 Keys are slash-separated representations of LogTape category arrays. The leading `.` and `@` prefixes match
-auto-generated categories for internal modules and external packages respectively:
+auto-generated categories for internal modules and external packages respectively. Values are type-safe `LogLevel`
+strings (`"trace"`, `"debug"`, `"info"`, `"warning"`, `"error"`, `"fatal"`):
 
 ```typescript
 log({
