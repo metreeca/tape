@@ -18,15 +18,16 @@
  * Simplified facade for the LogTape logging framework.
  *
  * Provides the {@link log} function for logger retrieval, configuration, and
- * function guarding with automatic path-based categorization and zero-configuration
+ * function guarding with automatic path-based categorisation and zero-configuration
  * defaults.
  *
  * @module
  */
 
-import { Config, configureSync, getConfig, getLogger, type LogLevel, type Logger } from "@logtape/logtape";
+import { Config, ConfigError, configureSync, getConfig, getLogger, type Logger, type LogLevel } from "@logtape/logtape";
 import { isArray, isFunction, isObject, isString } from "@metreeca/core";
-import { message } from "@metreeca/core/report";
+import { message } from "@metreeca/core/error";
+import { equals } from "@metreeca/core/nested";
 import { category, internal } from "./category.js";
 import { defaults } from "./defaults.js";
 
@@ -37,10 +38,12 @@ export * from "@logtape/logtape";
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Tracks whether LogTape was auto-configured on first logger retrieval.
- * Used to allow explicit configuration to override auto-configuration.
+ * Last explicitly applied configuration argument.
+ * `undefined` when unconfigured or autoconfigured; the original argument after explicit configuration.
+ * Used to allow explicit configuration to override autoconfiguration and to silently skip
+ * idempotent reconfiguration attempts.
  */
-let auto = false;
+let custom: undefined | Record<string, LogLevel> | Config<string, string>;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +58,7 @@ export function log(): Logger;
 /**
  * Retrieves a logger for the specified file path or URL.
  *
- * Extracts a hierarchical category array from the path for logger categorization.
+ * Extracts a hierarchical category array from the path for logger categorisation.
  *
  * Automatically configures LogTape on first use if the extracted category starts
  * with `"."` (local code) and LogTape is not yet configured. Default configuration
@@ -113,6 +116,11 @@ export function log<T extends unknown[], R>(f: (...args: T) => R): (...args: T) 
 /**
  * Configures LogTape with a complete configuration object.
  *
+ * > [!TIP]
+ * >
+ * > Repeated calls with a deep-equal configuration are silently accepted (the `reset` flag is ignored
+ * > for comparison purposes). Applying a different configuration throws unless `reset` is set to true.
+ *
  * @typeParam S Sink identifier type
  * @typeParam F Filter identifier type
  *
@@ -131,6 +139,11 @@ export function log<S extends string, F extends string>(config: Config<S, F>): v
  *   `"./utils"` for category `[".", "utils"]` or `"@/lodash"` for `["@", "lodash"]`).
  *
  * - Each value specifies the minimum {@link LogLevel} for the category.
+ *
+ * > [!TIP]
+ * >
+ * > Repeated calls with a deep-equal mapping are silently accepted. Applying a different configuration
+ * > throws unless a full {@link Config} object with `reset` set to true is used.
  *
  * @param config Path-to-level mapping for logger configuration
  */
@@ -172,11 +185,11 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 	} else if ( isObject(a) && Object.values(a).every(isString) ) { // configure with path-to-level map
 
-		return configure(defaults(a as Record<string, LogLevel>));
+		return configure(a as Record<string, LogLevel>, defaults(a as Record<string, LogLevel>));
 
 	} else { // configure with full config object
 
-		return configure(a as unknown as Config<S, F>);
+		return configure(a as Config<S, F>, a as Config<S, F>);
 
 	}
 
@@ -187,12 +200,8 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 function get(category: readonly string[] = []) {
 
-	if ( category[0] === internal && getConfig() === null ) {
-		try {
-			configureSync(defaults({}));
-		} finally {
-			auto = true;
-		}
+	if ( category[0] === internal && getConfig() === null && custom === undefined ) {
+		configureSync(defaults({}));
 	}
 
 	return getLogger(category);
@@ -233,18 +242,29 @@ function guard(f: (...args: unknown[]) => unknown) {
 	};
 }
 
-function configure<S extends string, F extends string>(config: Config<S, F>) {
+function configure<S extends string, F extends string>(
+	source: Record<string, LogLevel> | Config<S, F>,
+	config: Config<S, F>
+) {
 
-	if ( auto ) {
-		config.reset = true;
-	}
+	const configured = getConfig() !== null;
 
-	try {
+	if ( !configured // unconfigured or externally reset
+		|| custom === undefined // no prior custom config
+		|| source.reset === true // explicit reset requested
+	) {
 
-		return configureSync<S, F>(config);
+		configureSync<S, F>({
+			...config,
+			reset: configured
+		});
 
-	} finally {
-		auto = false;
+		custom = source;
+
+	} else if ( !equals({ ...source, reset: undefined }, { ...custom, reset: undefined }) ) {
+
+		throw new ConfigError("expected matching configuration or explicit reset");
+
 	}
 
 }

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { ConfigError, getConfig, resetSync } from "@logtape/logtape";
 import { describe, expect, it } from "vitest";
 import { log } from "./index.js";
 
@@ -166,6 +167,88 @@ describe("log(function)", () => {
 		// Result should be a Promise for async functions
 		expect(result).toBeInstanceOf(Promise);
 		expect(await result).toBe(10);
+	});
+
+});
+
+
+describe("log(config)", () => {
+
+	it("should auto-configure on first internal logger retrieval", async () => {
+
+		// previous tests triggered auto-config via log(import.meta.url)
+		expect(getConfig()).not.toBeNull();
+
+	});
+
+	it("should accept first explicit config from clean state", async () => {
+
+		// custom is undefined (no prior explicit config), LogTape unconfigured
+		resetSync();
+		expect(() => log({ "./cold": "info" })).not.toThrow();
+
+	});
+
+	it("should allow explicit config to override auto-config", async () => {
+
+		// reset and trigger auto-config via internal logger retrieval
+		resetSync();
+		log("./trigger-auto");
+		expect(() => log({ "./override": "debug" })).not.toThrow();
+
+	});
+
+	it("should silently accept repeated identical simplified config", async () => {
+
+		// previous test configured with { "./override": "debug" }
+		expect(() => log({ "./override": "debug" })).not.toThrow();
+
+	});
+
+	it("should reject repeated different simplified config", async () => {
+
+		expect(() => log({ "./other": "trace" })).toThrow(ConfigError);
+
+	});
+
+	it("should allow explicit config with reset flag", async () => {
+
+		expect(() => log({
+			reset: true,
+			sinks: {},
+			loggers: []
+		})).not.toThrow();
+
+	});
+
+	it("should silently accept repeated identical full config", async () => {
+
+		// previous test configured with { reset: true, sinks: {}, loggers: [] }
+		expect(() => log({
+			sinks: {},
+			loggers: []
+		})).not.toThrow();
+
+	});
+
+	it("should reject repeated different full config", async () => {
+
+		expect(() => log({
+			sinks: {},
+			loggers: [{ category: ["test"], sinks: [] }]
+		})).toThrow(ConfigError);
+
+	});
+
+	it("should not auto-configure after reset when custom config was set", async () => {
+
+		resetSync();
+
+		// custom config was set by prior tests, so auto-config must not run
+		const logger = log("./test-module");
+		expect(logger).toBeTruthy();
+		expect(getConfig()).toBeNull();
+
 	});
 
 });

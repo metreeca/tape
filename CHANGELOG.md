@@ -10,4 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Narrow `log(config)` value type from `string` to `LogLevel`
+- Make `log(config)` idempotent, silently accepting repeated deep-equal configurations
+- Fix `log(config)` preserving user-supplied `reset` flag instead of silently overwriting it
+- Bump `@metreeca/core` dependency to `^0.9.18`
 

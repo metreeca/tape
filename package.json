@@ -40,12 +40,11 @@
     "setup": "npm install && npm audit fix",
     "build": "rm -rf dist docs && tsc -p tsconfig.build.json && npx typedoc",
     "check": "npx vitest --typecheck run",
-    "watch": "npx tsc --watch",
     "proof": "npx typedoc && (npx typedoc --watch & npx five-server docs --open)"
   },
   "dependencies": {
     "@logtape/logtape": "^1.2.0",
-    "@metreeca/core": "^0.9.11"
+    "@metreeca/core": "^0.9.18"
   },
   "devDependencies": {
     "five-server": "^0.4.5",

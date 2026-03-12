@@ -20,5 +20,4 @@ description: Development guidelines and conventions for the @metreeca/tape packa
 - **`npm run setup`** - Install dependencies and apply security fixes
 - **`npm run build`** - Build TypeScript and generate TypeDoc documentation
 - **`npm run check`** - Run Vitest test suite
-- **`npm run watch`** - Watch and recompile TypeScript on changes
 - **`npm run proof`** - Start TypeDoc watch mode and documentation server

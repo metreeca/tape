@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Config, getConsoleSink, type LogLevel, LoggerConfig } from "@logtape/logtape";
+import { Config, getConsoleSink, LoggerConfig, type LogLevel } from "@logtape/logtape";
 
 /**
  * Visual severity prefixes for log levels.

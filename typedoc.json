@@ -16,7 +16,8 @@
   },
   "externalSymbolLinkMappings": {
     "@logtape/logtape": {
-      "LogLevel": "https://jsr.io/@logtape/logtape/doc/~/LogLevel"
+      "LogLevel": "https://jsr.io/@logtape/logtape/doc/~/LogLevel",
+      "Config": "https://jsr.io/@logtape/logtape/doc/~/Config"
     }
   },
   "excludeExternals": true,

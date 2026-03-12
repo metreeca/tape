@@ -119,6 +119,9 @@ log({
 });
 ```
 
+Both configuration forms are idempotent: repeated calls with a deep-equal configuration are silently accepted, while
+applying a different configuration throws unless the full `Config` form is used with `reset` set to `true`.
+
 For advanced use cases, pass a complete LogTape `Config` object:
 
 ```typescript
