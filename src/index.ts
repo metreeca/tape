@@ -26,8 +26,8 @@
 
 import { Config, ConfigError, configureSync, getConfig, getLogger, type Logger, type LogLevel } from "@logtape/logtape";
 import { isArray, isFunction, isObject, isString } from "@metreeca/core";
-import { message } from "@metreeca/core/error";
-import { equals } from "@metreeca/core/nested";
+import { message } from "@metreeca/core/report";
+import { equals } from "@metreeca/core/deep";
 import { category, internal } from "./category.js";
 import { defaults } from "./defaults.js";
 
