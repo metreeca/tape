@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { category, label } from "./category.js";
+import { category, label, parse } from "./category.js";
 
 
 describe("parse()", () => {
@@ -24,44 +24,44 @@ describe("parse()", () => {
 
 		test("extracts context from project file", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/pipelines/units/tasks/analyze.ts";
-			expect(category(url)).toEqual([".", "pipelines", "units", "tasks", "analyze"]);
+			expect(category(url)).toEqual(["/", "pipelines", "units", "tasks", "analyze"]);
 		});
 
 		test("handles project file outside src", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/scripts/build.ts";
-			expect(category(url)).toEqual([".", "build"]);
+			expect(category(url)).toEqual(["/", "build"]);
 		});
 
 		test("supports custom project root", () => {
 			const url = "file:///Users/Alessandro/packages/core/lib/utils.ts";
-			expect(category(url, "lib")).toEqual([".", "utils"]);
+			expect(category(url, "lib")).toEqual(["/", "utils"]);
 		});
 
 		test("preserves index for root-level index files under custom root", () => {
 			const url = "file:///Users/Alessandro/project/lib/index.ts";
-			expect(category(url, "lib")).toEqual([".", "index"]);
+			expect(category(url, "lib")).toEqual(["/", "index"]);
 		});
 
 		test("uses last segment when root directory not found", () => {
 			const url = "file:///Users/Alessandro/project/lib/utils.ts";
-			expect(category(url, "src")).toEqual([".", "utils"]);
+			expect(category(url, "src")).toEqual(["/", "utils"]);
 		});
 
 		test("preserves index segment in project files", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/utils/index.ts";
-			expect(category(url)).toEqual([".", "utils", "index"]);
+			expect(category(url)).toEqual(["/", "utils", "index"]);
 		});
 
 		test("preserves index for root src file", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/index.ts";
-			expect(category(url)).toEqual([".", "index"]);
+			expect(category(url)).toEqual(["/", "index"]);
 		});
 
 		test("distinguishes name.ts from name/index.ts", () => {
 			const flat = "file:///Users/Alessandro/project/src/name.ts";
 			const nested = "file:///Users/Alessandro/project/src/name/index.ts";
-			expect(category(flat)).toEqual([".", "name"]);
-			expect(category(nested)).toEqual([".", "name", "index"]);
+			expect(category(flat)).toEqual(["/", "name"]);
+			expect(category(nested)).toEqual(["/", "name", "index"]);
 		});
 
 	});
@@ -80,12 +80,12 @@ describe("parse()", () => {
 
 		test("extracts regular package name from node_modules", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/express/lib/express.js";
-			expect(category(url)).toEqual(["@", "express", "express"]);
+			expect(category(url)).toEqual([ "express", "express"]);
 		});
 
 		test("handles packages without build directory", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/package/src/utils.js";
-			expect(category(url)).toEqual(["@", "package", "src", "utils"]);
+			expect(category(url)).toEqual([ "package", "src", "utils"]);
 		});
 
 		test("handles deeply nested package paths", () => {
@@ -101,18 +101,18 @@ describe("parse()", () => {
 		test("preserves legitimate package names deeper in path", () => {
 			// Package name "logger" appears legitimately in the path after being filtered once
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/logger/dist/logger/utils/logger-config.js";
-			expect(category(url)).toEqual(["@", "logger", "utils", "logger-config"]);
+			expect(category(url)).toEqual([ "logger", "utils", "logger-config"]);
 		});
 
 		test("does not filter when package name appears later without redundancy", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/pkg/src/utils/pkg-helper.js";
 			// "src" is not a build directory, so it stays in the path
-			expect(category(url)).toEqual(["@", "pkg", "src", "utils", "pkg-helper"]);
+			expect(category(url)).toEqual([ "pkg", "src", "utils", "pkg-helper"]);
 		});
 
 		test("preserves index segment in package entry file", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/lodash/index.js";
-			expect(category(url)).toEqual(["@", "lodash", "index"]);
+			expect(category(url)).toEqual([ "lodash", "index"]);
 		});
 
 	});
@@ -121,29 +121,29 @@ describe("parse()", () => {
 
 		test("parses slash-separated path segments as project code", () => {
 			// Without root directory, only last segment is used
-			expect(category("foo/bar/baz")).toEqual([".", "baz"]);
+			expect(category("foo/bar/baz")).toEqual(["/", "baz"]);
 		});
 
 		test("handles single non-URL element as project code", () => {
-			expect(category("utilities")).toEqual([".", "utilities"]);
+			expect(category("utilities")).toEqual(["/", "utilities"]);
 		});
 
 		test("handles empty string as project root", () => {
-			expect(category("")).toEqual(["."]);
+			expect(category("")).toEqual(["/"]);
 		});
 
 		test("handles leading slashes in path as project code", () => {
 			// Without root directory, only last segment is used
-			expect(category("/foo/bar")).toEqual([".", "bar"]);
+			expect(category("/foo/bar")).toEqual(["/", "bar"]);
 		});
 
 		test("handles trailing slashes in path as project code", () => {
 			// Without root directory, only last segment is used
-			expect(category("foo/bar/baz/")).toEqual([".", "baz"]);
+			expect(category("foo/bar/baz/")).toEqual(["/", "baz"]);
 		});
 
 		test("extracts segments after root directory in plain paths", () => {
-			expect(category("src/utils/helper")).toEqual([".", "utils", "helper"]);
+			expect(category("src/utils/helper")).toEqual(["/", "utils", "helper"]);
 		});
 
 	});
@@ -152,17 +152,17 @@ describe("parse()", () => {
 
 		test("strips any file extension", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/pipelines/units.py";
-			expect(category(url)).toEqual([".", "pipelines", "units"]);
+			expect(category(url)).toEqual(["/", "pipelines", "units"]);
 		});
 
 		test("strips multiple extensions", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/pipelines/units.test.ts";
-			expect(category(url)).toEqual([".", "pipelines", "units"]);
+			expect(category(url)).toEqual(["/", "pipelines", "units"]);
 		});
 
 		test("strips extension from package files", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/lodash/dist/lodash.min.js";
-			expect(category(url)).toEqual(["@", "lodash", "lodash"]);
+			expect(category(url)).toEqual([ "lodash", "lodash"]);
 		});
 
 	});
@@ -171,18 +171,18 @@ describe("parse()", () => {
 
 		test("handles http URLs", () => {
 			const url = "http://example.com/node_modules/package/index.js";
-			expect(category(url)).toEqual(["@", "package", "index"]);
+			expect(category(url)).toEqual([ "package", "index"]);
 		});
 
 		test("handles https URLs", () => {
 			const url = "https://example.com/path/to/file.ts";
 			// Without a "src" root in the path, it takes only the last segment
-			expect(category(url)).toEqual([".", "file"]);
+			expect(category(url)).toEqual(["/", "file"]);
 		});
 
 		test("handles URLs without paths", () => {
 			const url = "http://example.com";
-			expect(category(url)).toEqual(["."]);
+			expect(category(url)).toEqual(["/"]);
 		});
 
 	});
@@ -192,29 +192,29 @@ describe("parse()", () => {
 		test("handles data URIs", () => {
 			const url = "data:text/plain,hello";
 			// Without root directory, only last segment is used
-			expect(category(url)).toEqual([".", "plain,hello"]);
+			expect(category(url)).toEqual(["/", "plain,hello"]);
 		});
 
 		test("handles ws/wss URIs", () => {
 			const url = "ws://example.com/socket/channel.js";
 			// Without root directory, only last segment is used
-			expect(category(url)).toEqual([".", "channel"]);
+			expect(category(url)).toEqual(["/", "channel"]);
 		});
 
 		test("handles custom scheme URIs with root directory", () => {
 			const url = "custom://host/src/utils/helper.ts";
-			expect(category(url)).toEqual([".", "utils", "helper"]);
+			expect(category(url)).toEqual(["/", "utils", "helper"]);
 		});
 
 		test("handles scheme without authority", () => {
 			const url = "custom:/path/to/module.ts";
 			// Without root directory, only last segment is used
-			expect(category(url)).toEqual([".", "module"]);
+			expect(category(url)).toEqual(["/", "module"]);
 		});
 
 		test("handles scheme without authority with root directory", () => {
 			const url = "custom:/src/utils/module.ts";
-			expect(category(url)).toEqual([".", "utils", "module"]);
+			expect(category(url)).toEqual(["/", "utils", "module"]);
 		});
 
 		test("handles node_modules in custom schemes", () => {
@@ -232,33 +232,33 @@ describe("label()", () => {
 	describe("internal modules", () => {
 
 		test("renders root index as /", () => {
-			expect(label([".", "index"])).toBe("/");
+			expect(label(["/", "index"])).toBe("/");
 		});
 
 		test("renders flat module with leading /", () => {
-			expect(label([".", "name"])).toBe("/name");
+			expect(label(["/", "name"])).toBe("/name");
 		});
 
 		test("renders nested index with trailing /", () => {
-			expect(label([".", "name", "index"])).toBe("/name/");
+			expect(label(["/", "name", "index"])).toBe("/name/");
 		});
 
 		test("renders deep module path", () => {
-			expect(label([".", "utils", "helper"])).toBe("/utils/helper");
+			expect(label(["/", "utils", "helper"])).toBe("/utils/helper");
 		});
 
 		test("renders deep index module with trailing /", () => {
-			expect(label([".", "utils", "index"])).toBe("/utils/");
+			expect(label(["/", "utils", "index"])).toBe("/utils/");
 		});
 
 		test("distinguishes name.ts from name/index.ts", () => {
-			expect(label([".", "name"])).toBe("/name");
-			expect(label([".", "name", "index"])).toBe("/name/");
+			expect(label(["/", "name"])).toBe("/name");
+			expect(label(["/", "name", "index"])).toBe("/name/");
 		});
 
 		test("ignores empty trailing segments from anonymous getChild", () => {
-			expect(label([".", "index", ""])).toBe("/");
-			expect(label([".", "name", ""])).toBe("/name");
+			expect(label(["/", "index", ""])).toBe("/");
+			expect(label(["/", "name", ""])).toBe("/name");
 		});
 
 	});
@@ -266,11 +266,11 @@ describe("label()", () => {
 	describe("external packages", () => {
 
 		test("renders non-scoped package entry with trailing /", () => {
-			expect(label(["@", "lodash", "index"])).toBe("lodash/");
+			expect(label([ "lodash", "index"])).toBe("lodash/");
 		});
 
 		test("renders non-scoped package module with :module", () => {
-			expect(label(["@", "lodash", "map"])).toBe("lodash:map");
+			expect(label([ "lodash", "map"])).toBe("lodash:map");
 		});
 
 		test("renders scoped package entry with trailing /", () => {
@@ -286,7 +286,72 @@ describe("label()", () => {
 		});
 
 		test("collapses trailing /index in non-scoped package module", () => {
-			expect(label(["@", "lodash", "utils", "index"])).toBe("lodash:utils/");
+			expect(label([ "lodash", "utils", "index"])).toBe("lodash:utils/");
+		});
+
+	});
+
+});
+
+
+describe("parse()", () => {
+
+	describe("internal keys", () => {
+
+		test("parses empty key as root catch-all", () => {
+			expect(parse("")).toEqual([]);
+		});
+
+		test("parses / as internal root", () => {
+			expect(parse("/")).toEqual(["/"]);
+		});
+
+		test("parses /name as internal module", () => {
+			expect(parse("/name")).toEqual(["/", "name"]);
+		});
+
+		test("parses /utils/helper as nested internal module", () => {
+			expect(parse("/utils/helper")).toEqual(["/", "utils", "helper"]);
+		});
+
+		test("parses /name/ with trailing slash as index module", () => {
+			expect(parse("/name/")).toEqual(["/", "name", "index"]);
+		});
+
+	});
+
+	describe("non-scoped package keys", () => {
+
+		test("parses bare package name", () => {
+			expect(parse("lodash")).toEqual(["lodash"]);
+		});
+
+		test("parses package module", () => {
+			expect(parse("lodash/map")).toEqual(["lodash", "map"]);
+		});
+
+		test("parses trailing slash as package index", () => {
+			expect(parse("lodash/")).toEqual(["lodash", "index"]);
+		});
+
+	});
+
+	describe("scoped package keys", () => {
+
+		test("parses scoped package name", () => {
+			expect(parse("@scope/pkg")).toEqual(["@scope", "pkg"]);
+		});
+
+		test("parses scoped package module", () => {
+			expect(parse("@scope/pkg/utils")).toEqual(["@scope", "pkg", "utils"]);
+		});
+
+		test("parses scoped package nested module", () => {
+			expect(parse("@scope/pkg/utils/helper")).toEqual(["@scope", "pkg", "utils", "helper"]);
+		});
+
+		test("parses trailing slash as scoped package index", () => {
+			expect(parse("@scope/pkg/")).toEqual(["@scope", "pkg", "index"]);
 		});
 
 	});

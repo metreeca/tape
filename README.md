@@ -40,24 +40,24 @@ LogTape uses a [hierarchical category system](https://logtape.org/manual/categor
 project code and external dependencies:
 
 - **Internal modules** (project code):
-	- Prefixed with `"."` (e.g., `[".", "utils", "helper"]`)
+	- First segment is `"/"` (e.g., `["/", "utils", "helper"]`)
 	- Extracted from paths after `src/` directory
 	- Auto-configures console logging at `"info"` level on first use
 
 - **External modules** (from `node_modules/`):
-	- Non-scoped packages: Prefixed with `"@"` (e.g., `["@", "lodash", "map"]`)
-	- Scoped packages: Inherently prefixed (e.g., `["@metreeca", "pipe", "feeds"]`)
+	- Non-scoped packages: bare package name (e.g., `["lodash", "map"]`)
+	- Scoped packages: scope + name (e.g., `["@metreeca", "pipe", "feeds"]`)
 	- Skips build directories (`dist`, `lib`, `build`, `out`)
 
 | File Path                                   | Category                         |
 |---------------------------------------------|----------------------------------|
-| `file:///project/src/utils/logger.ts`       | `[".", "utils", "logger"]`       |
-| `file:///project/src/utils/index.ts`        | `[".", "utils", "index"]`        |
-| `node_modules/lodash/map.js`                | `["@", "lodash", "map"]`         |
+| `file:///project/src/utils/logger.ts`       | `["/", "utils", "logger"]`       |
+| `file:///project/src/utils/index.ts`        | `["/", "utils", "index"]`        |
+| `node_modules/lodash/map.js`                | `["lodash", "map"]`              |
 | `node_modules/@metreeca/pipe/dist/index.js` | `["@metreeca", "pipe", "index"]` |
 
 `"index"` is preserved as an explicit segment so that `name.ts` and `name/index.ts` resolve to distinct categories
-(`[".", "name"]` vs `[".", "name", "index"]`). LogTape's hierarchical matching means a filter at `./name` or
+(`["/", "name"]` vs `["/", "name", "index"]`). LogTape's hierarchical matching means a filter at `/name` or
 `@metreeca/pipe` still applies to nested `index` loggers.
 
 ```typescript
@@ -73,7 +73,7 @@ logger.error("Failed to connect", error);
 
 // Use category arrays directly for more control
 
-const custom = log([".", "custom", "category"]);
+const custom = log(["/", "custom", "category"]);
 
 custom.info("Message from custom category");
 
@@ -111,15 +111,16 @@ const data = safeParse("invalid json"); // Returns undefined, logs error
 Configure logging levels using simple category-to-[`LogLevel`](https://jsr.io/@logtape/logtape/doc/~/LogLevel)
 mappings.
 
-Keys are slash-separated representations of LogTape category arrays. The leading `.` and `@` prefixes match
-auto-generated categories for internal modules and external packages respectively. Values are type-safe `LogLevel`
-strings (`"trace"`, `"debug"`, `"info"`, `"warning"`, `"error"`, `"fatal"`):
+Keys mirror the log label convention: `"/"` for all internal code, `"/module"` for a specific internal module, a bare
+package name for non-scoped packages, and `"@scope/name"` for scoped packages. A trailing `/` targets the `index`
+module specifically. Values are type-safe `LogLevel` strings (`"trace"`, `"debug"`, `"info"`, `"warning"`, `"error"`,
+`"fatal"`):
 
 ```typescript
 log({
-	".": "info",            // All internal code
-	"./utils": "debug",     // Specific internal module
-	"@/lodash": "trace",    // Specific non-scoped package
+	"/": "info",               // All internal code
+	"/utils": "debug",         // Specific internal module
+	"lodash": "trace",         // Specific non-scoped package
 	"@metreeca/pipe": "debug"  // Specific scoped package
 });
 ```
@@ -139,7 +140,7 @@ log({
 	},
 	loggers: [
 		{
-			category: ["."],
+			category: ["/"],
 			lowestLevel: "debug",
 			sinks: ["console", "file"]
 		}

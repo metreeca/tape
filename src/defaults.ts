@@ -15,7 +15,7 @@
  */
 
 import { type Config, getConsoleSink, type LoggerConfig, type LogLevel } from "@logtape/logtape";
-import { label } from "./category.js";
+import { internal, label, parse } from "./category.js";
 
 /**
  * Visual severity prefixes for log levels.
@@ -81,14 +81,14 @@ export function defaults(config: Record<string, LogLevel>): Config<"console", ne
 				sinks: ["console"]
 			}]),
 
-			...("." in config ? [] : [{
-				category: ["."],
+			...(internal in config ? [] : [{
+				category: [internal],
 				lowestLevel: "info",
 				sinks: ["console"]
 			}]),
 
 			...Object.entries(config).map(([path, level]) => ({
-				category: path.split("/").filter(Boolean),
+				category: parse(path),
 				lowestLevel: level,
 				sinks: ["console"]
 			}))

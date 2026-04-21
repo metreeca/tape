@@ -14,9 +14,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fix `log(config)` preserving user-supplied `reset` flag instead of silently overwriting it
 - Fix `log(config)` duplicate logger error when overriding default categories
 - Preserve `"index"` as an explicit category segment so that `name.ts` and `name/index.ts` resolve
-  to distinct categories; root `src/index.ts` now resolves to `[".", "index"]` instead of `["."]`
+  to distinct categories; root `src/index.ts` now resolves to `["/", "index"]` instead of `["."]`
 - Render log labels via a new `label()` helper: internal modules as `/module/path` with trailing
   `/` for `index` entries (e.g. `/utils/`, `/name/`), external packages as `package[:module]` with
   trailing `/` for `index` entries (e.g. `lodash/`, `@scope/pkg:utils/`)
+- **BREAKING**: Align category arrays and config keys with the label convention: internal marker
+  changed from `"."` to `"/"` (e.g. `["/", "utils"]` instead of `[".", "utils"]`); non-scoped
+  packages drop the `"@"` marker (e.g. `["lodash", "map"]` instead of `["@", "lodash", "map"]`);
+  config keys use label-style syntax (`"/"`, `"/utils"`, `"lodash"`, `"@scope/pkg"` replace `"."`,
+  `"./utils"`, `"@/lodash"`, `"@scope/pkg"`). A new `parse()` helper maps config keys to category
+  arrays
 - Bump `@metreeca/core` dependency to `^0.9.18`
 

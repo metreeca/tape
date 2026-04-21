@@ -30,26 +30,30 @@ const roots = new Set(["dist", "lib", "build", "out"]);
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Marker prefix for project-local code categories.
+ * Marker segment for project-local code categories.
  *
- * Used to distinguish project code from external dependencies in logger hierarchies.
+ * Internal logger categories start with this segment to distinguish project code
+ * from external dependencies in logger hierarchies.
  *
  * @example
  * ```ts
- * "./module"  // Project code
+ * ["/", "utils", "helper"]  // Project module src/utils/helper.ts
+ * ["/"]                     // All internal code
  * ```
  */
-export const internal = ".";
+export const internal = "/";
 
 /**
- * Marker prefix for external dependency categories.
+ * Prefix character identifying scoped npm package segments.
  *
- * Used to distinguish project code from external dependencies in logger hierarchies.
+ * Scoped packages start with this character in their first category segment
+ * (e.g. `"@scope"` in `["@scope", "pkg"]`). Non-scoped packages have no marker —
+ * the package name is the first category segment.
  *
  * @example
  * ```ts
- * "@/pkg/module"  // External dependency (non-scoped package)
- * "@scope/pkg"    // External dependency (scoped package, inherently prefixed)
+ * ["lodash", "map"]        // Non-scoped package (bare name)
+ * ["@scope", "pkg", "utils"] // Scoped package
  * ```
  */
 export const external = "@";
@@ -63,8 +67,8 @@ export const external = "@";
  * Implementation details:
  *
  * - URIs with any scheme (file://, http://, data:, etc.) are parsed and pathname extracted
- * - node_modules paths: Extract package identifier, prefix non-scoped packages with `"@"`
- * - Local code: Prefix with `"."`, extract segments after root directory (default: `"src"`)
+ * - node_modules paths: Extract package identifier (bare name for non-scoped, scope + name for scoped)
+ * - Local code: Prefix with `"/"`, extract segments after root directory (default: `"src"`)
  * - Cleaning: Remove extensions, filter empty segments; `"index"` is preserved as an explicit
  *   segment to distinguish sibling modules (e.g., `name.ts` vs `name/index.ts`)
  * - Build directories (`dist`, `lib`, `build`, `out`) are skipped
@@ -94,14 +98,47 @@ export function category(url: string, root = "src"): readonly string[] {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Parses a filter config key into a category array.
+ *
+ * The key format mirrors the log label convention:
+ *
+ * - `""` → `[]` (root catch-all)
+ * - `"/"` → `["/"]` (all internal code)
+ * - `"/utils"` → `["/", "utils"]` (internal module)
+ * - `"/utils/helper"` → `["/", "utils", "helper"]` (nested internal module)
+ * - `"lodash"` → `["lodash"]` (non-scoped package)
+ * - `"lodash/map"` → `["lodash", "map"]` (non-scoped package module)
+ * - `"@scope/pkg"` → `["@scope", "pkg"]` (scoped package)
+ * - `"@scope/pkg/utils"` → `["@scope", "pkg", "utils"]` (scoped package module)
+ *
+ * A trailing `/` appends an explicit `"index"` segment (e.g. `"/name/"` →
+ * `["/", "name", "index"]`, `"lodash/"` → `["lodash", "index"]`).
+ *
+ * @internal
+ *
+ * @param key Filter config key in label form
+ *
+ * @returns Hierarchical category segments
+ */
+export function parse(key: string): readonly string[] {
+
+	const prefix = key.startsWith("/") ? [internal] : [];
+	const trailing = key !== "/" && key.endsWith("/") ? ["index"] : [];
+	const parts = key.replace(/\/$/, "").split("/").filter(s => s);
+
+	return [...prefix, ...parts, ...trailing];
+
+}
+
+/**
  * Builds path segments for imported npm packages.
  *
  * Extracts package identifier, removes build directories and redundant package names,
- * then cleans remaining segments. Non-scoped packages are prefixed with `"@"`.
+ * then cleans remaining segments.
  *
  * @param segments Path segments after "node_modules" in the file path
  *
- * @returns Array starting with `"@"` prefix (for non-scoped) or package identifier
+ * @returns Array starting with the bare package name (for non-scoped) or scope + name
  * (for scoped), followed by cleaned module path segments
  */
 function imported(segments: string[]): readonly string[] {
@@ -119,14 +156,12 @@ function imported(segments: string[]): readonly string[] {
 
 	const category = clean(segments.slice(module+buildOffset+nameOffset));
 
-	return scoped
-		? [...packageId, ...category]
-		: [external, ...packageId, ...category];
+	return [...packageId, ...category];
 
 }
 
 /**
- * Builds project-relative path segments with "." prefix.
+ * Builds project-relative path segments with the {@link internal} prefix.
  *
  * When root directory is found, returns all segments after it.
  * Otherwise, returns only the last segment as a fallback.
@@ -134,7 +169,7 @@ function imported(segments: string[]): readonly string[] {
  * @param segments Path segments to process
  * @param root Root directory name to search for (typically "src")
  *
- * @returns Array starting with "." followed by cleaned path segments
+ * @returns Array starting with the internal marker followed by cleaned path segments
  */
 function exported(segments: string[], root: string): readonly string[] {
 
@@ -150,15 +185,15 @@ function exported(segments: string[], root: string): readonly string[] {
  *
  * Format:
  *
- * - **Internal modules** (category starts with `"."`): leading `/`, then module
+ * - **Internal modules** (category starts with `"/"`): leading `/`, then module
  *   segments joined by `/`. A trailing `index` segment collapses to a trailing `/`.
- *   The root `[".", "index"]` renders as `/`.
+ *   The root `["/", "index"]` renders as `/`.
  *
- * - **External packages** (category starts with `"@"` or `"@scope"`): package name
- *   followed by `:module` when a non-index module path is present. A module path of
- *   `index` renders the package with a trailing `/` (e.g. `lodash/`). A trailing
- *   `/index` inside a multi-segment module path collapses to a trailing `/`
- *   (e.g. `@scope/pkg:utils/`).
+ * - **External packages** (category starts with a bare package name or a `"@scope"`
+ *   segment): package name followed by `:module` when a non-index module path is
+ *   present. A module path of `index` renders the package with a trailing `/` (e.g.
+ *   `lodash/`). A trailing `/index` inside a multi-segment module path collapses to
+ *   a trailing `/` (e.g. `@scope/pkg:utils/`).
  *
  * @internal
  *
@@ -178,9 +213,9 @@ export function label(category: readonly string[]): string {
 
 	} else {
 
-		const scoped = segments[0]?.startsWith(external) && segments[0] !== external;
-		const pkg = scoped ? `${segments[0]}/${segments[1]}` : segments[1] ?? "";
-		const module = segments.slice(2).join("/");
+		const scoped = segments[0]?.startsWith(external);
+		const pkg = scoped ? `${segments[0]}/${segments[1]}` : segments[0] ?? "";
+		const module = segments.slice(scoped ? 2 : 1).join("/");
 
 		if ( module === "" ) {
 			return pkg;
@@ -194,6 +229,8 @@ export function label(category: readonly string[]): string {
 
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Cleans and filters path segments.

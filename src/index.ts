@@ -61,25 +61,25 @@ export function log(): Logger;
  * Extracts a hierarchical category array from the path for logger categorisation.
  *
  * Automatically configures LogTape on first use if the extracted category starts
- * with `"."` (local code) and LogTape is not yet configured. Default configuration
+ * with `"/"` (local code) and LogTape is not yet configured. Default configuration
  * includes console sink with visual severity prefixes, LogTape meta logger set to
  * `"warning"` level, and local code logger at `"info"` level.
  *
  * Path resolution:
  *
- * - **Local code** (your project): Paths prefixed with `"."`. If URL provided
+ * - **Local code** (your project): Category starts with `"/"`. If URL provided
  *   (for instance, `import.meta.url`), pathname is parsed and segments after `src/`
  *   directory are extracted (or filename only if `src/` not found). Extensions
  *   are removed; `"index"` is preserved as an explicit segment so that
  *   `name.ts` and `name/index.ts` remain distinguishable.
  *
- * - **Imported packages** (from `node_modules/`): Non-scoped packages prefixed with
- *   `"@"` (for instance, `["@", "lodash", "index"]` for a bare entry point), scoped
+ * - **Imported packages** (from `node_modules/`): Non-scoped packages start with the bare
+ *   package name (for instance, `["lodash", "index"]` for a bare entry point); scoped
  *   packages use two segments (for instance, `["@metreeca", "post", "index"]`).
  *   Build directories (`dist`, `lib`, `build`, `out`) and redundant package name
  *   folders are skipped. Extensions are removed from remaining paths; `"index"` is
- *   preserved. Hierarchical matching means a filter at `@/lodash` still applies to
- *   `@/lodash/index`.
+ *   preserved. Hierarchical matching means a filter at `lodash` still applies to
+ *   `lodash/index`.
  *
  * @param url File path or URL to create logger category from
  *
@@ -90,7 +90,7 @@ export function log(url: string): Logger;
 /**
  * Retrieves a logger for the specified category array.
  *
- * Automatically configures LogTape on first use if the category starts with `"."`
+ * Automatically configures LogTape on first use if the category starts with `"/"`
  * and LogTape is not yet configured. Default configuration includes console sink
  * with visual severity prefixes, LogTape meta logger at `"warning"` level, and
  * local code logger at `"info"` level.
@@ -137,9 +137,9 @@ export function log<S extends string, F extends string>(config: Config<S, F>): v
  * Configures LogTape with a single console logger using visual severity prefixes and a configuration derived from a
  * simplified representation mapping categories to minimum {@link LogLevel | log levels}:
  *
- * - Each key represents a LogTape category array as a slash-separated path, with `"."` prefix
- *   for internal project code and `"@"` prefix for external dependencies (for instance,
- *   `"./utils"` for category `[".", "utils"]` or `"@/lodash"` for `["@", "lodash"]`).
+ * - Each key represents a LogTape category in label form: `"/"` (all internal code), `"/utils"`
+ *   (internal module), `"lodash"` (non-scoped package), `"@scope/pkg"` (scoped package). A
+ *   trailing `/` targets the `index` module (for instance, `"/name/"` matches only `src/name/index.ts`).
  *
  * - Each value specifies the minimum {@link LogLevel} for the category.
  *

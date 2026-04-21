@@ -184,7 +184,7 @@ describe("log(config)", () => {
 
 		// custom is undefined (no prior explicit config), LogTape unconfigured
 		resetSync();
-		expect(() => log({ "./cold": "info" })).not.toThrow();
+		expect(() => log({ "/cold": "info" })).not.toThrow();
 
 	});
 
@@ -192,21 +192,21 @@ describe("log(config)", () => {
 
 		// reset and trigger auto-config via internal logger retrieval
 		resetSync();
-		log("./trigger-auto");
-		expect(() => log({ "./override": "debug" })).not.toThrow();
+		log("/trigger-auto");
+		expect(() => log({ "/override": "debug" })).not.toThrow();
 
 	});
 
 	it("should silently accept repeated identical simplified config", async () => {
 
-		// previous test configured with { "./override": "debug" }
-		expect(() => log({ "./override": "debug" })).not.toThrow();
+		// previous test configured with { "/override": "debug" }
+		expect(() => log({ "/override": "debug" })).not.toThrow();
 
 	});
 
 	it("should reject repeated different simplified config", async () => {
 
-		expect(() => log({ "./other": "trace" })).toThrow(ConfigError);
+		expect(() => log({ "/other": "trace" })).toThrow(ConfigError);
 
 	});
 
@@ -244,7 +244,7 @@ describe("log(config)", () => {
 		resetSync();
 
 		// custom config was set by prior tests, so auto-config must not run
-		const logger = log("./test-module");
+		const logger = log("/test-module");
 		expect(logger).toBeTruthy();
 		expect(getConfig()).toBeNull();
 
