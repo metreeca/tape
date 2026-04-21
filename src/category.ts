@@ -146,6 +146,56 @@ function exported(segments: string[], root: string): readonly string[] {
 
 
 /**
+ * Renders a category array as a human-readable log label.
+ *
+ * Format:
+ *
+ * - **Internal modules** (category starts with `"."`): leading `/`, then module
+ *   segments joined by `/`. A trailing `index` segment collapses to a trailing `/`.
+ *   The root `[".", "index"]` renders as `/`.
+ *
+ * - **External packages** (category starts with `"@"` or `"@scope"`): package name
+ *   followed by `:module` when a non-index module path is present. A module path of
+ *   `index` renders the package with a trailing `/` (e.g. `lodash/`). A trailing
+ *   `/index` inside a multi-segment module path collapses to a trailing `/`
+ *   (e.g. `@scope/pkg:utils/`).
+ *
+ * @internal
+ *
+ * @param category Hierarchical logger category segments
+ *
+ * @returns Human-readable label suitable for log display
+ */
+export function label(category: readonly string[]): string {
+
+	const segments = category.filter(s => s);
+
+	if ( segments[0] === internal ) {
+
+		const module = segments.slice(1).join("/").replace(/(^|\/)index$/, "$1");
+
+		return `/${module}`;
+
+	} else {
+
+		const scoped = segments[0]?.startsWith(external) && segments[0] !== external;
+		const pkg = scoped ? `${segments[0]}/${segments[1]}` : segments[1] ?? "";
+		const module = segments.slice(2).join("/");
+
+		if ( module === "" ) {
+			return pkg;
+		} else if ( module === "index" ) {
+			return `${pkg}/`;
+		} else {
+			return `${pkg}:${module.replace(/\/index$/, "/")}`;
+		}
+
+	}
+
+}
+
+
+/**
  * Cleans and filters path segments.
  *
  * Splits segments on "/", removes file extensions and trailing slashes,

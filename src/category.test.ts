@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { category } from "./category.js";
+import { category, label } from "./category.js";
 
 
 describe("parse()", () => {
@@ -220,6 +220,73 @@ describe("parse()", () => {
 		test("handles node_modules in custom schemes", () => {
 			const url = "bundler://project/node_modules/@scope/pkg/dist/index.js";
 			expect(category(url)).toEqual(["@scope", "pkg", "index"]);
+		});
+
+	});
+
+});
+
+
+describe("label()", () => {
+
+	describe("internal modules", () => {
+
+		test("renders root index as /", () => {
+			expect(label([".", "index"])).toBe("/");
+		});
+
+		test("renders flat module with leading /", () => {
+			expect(label([".", "name"])).toBe("/name");
+		});
+
+		test("renders nested index with trailing /", () => {
+			expect(label([".", "name", "index"])).toBe("/name/");
+		});
+
+		test("renders deep module path", () => {
+			expect(label([".", "utils", "helper"])).toBe("/utils/helper");
+		});
+
+		test("renders deep index module with trailing /", () => {
+			expect(label([".", "utils", "index"])).toBe("/utils/");
+		});
+
+		test("distinguishes name.ts from name/index.ts", () => {
+			expect(label([".", "name"])).toBe("/name");
+			expect(label([".", "name", "index"])).toBe("/name/");
+		});
+
+		test("ignores empty trailing segments from anonymous getChild", () => {
+			expect(label([".", "index", ""])).toBe("/");
+			expect(label([".", "name", ""])).toBe("/name");
+		});
+
+	});
+
+	describe("external packages", () => {
+
+		test("renders non-scoped package entry with trailing /", () => {
+			expect(label(["@", "lodash", "index"])).toBe("lodash/");
+		});
+
+		test("renders non-scoped package module with :module", () => {
+			expect(label(["@", "lodash", "map"])).toBe("lodash:map");
+		});
+
+		test("renders scoped package entry with trailing /", () => {
+			expect(label(["@scope", "pkg", "index"])).toBe("@scope/pkg/");
+		});
+
+		test("renders scoped package module with :module", () => {
+			expect(label(["@scope", "pkg", "utils", "helper"])).toBe("@scope/pkg:utils/helper");
+		});
+
+		test("collapses trailing /index in scoped package module", () => {
+			expect(label(["@scope", "pkg", "utils", "index"])).toBe("@scope/pkg:utils/");
+		});
+
+		test("collapses trailing /index in non-scoped package module", () => {
+			expect(label(["@", "lodash", "utils", "index"])).toBe("lodash:utils/");
 		});
 
 	});

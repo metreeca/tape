@@ -15,6 +15,7 @@
  */
 
 import { type Config, getConsoleSink, type LoggerConfig, type LogLevel } from "@logtape/logtape";
+import { label } from "./category.js";
 
 /**
  * Visual severity prefixes for log levels.
@@ -56,7 +57,7 @@ export function defaults(config: Record<string, LogLevel>): Config<"console", ne
 				formatter: record => {
 
 					const prefix = prefixes[record.level] ?? "?";
-					const source = record.category.at(-1) ?? "";
+					const source = label(record.category);
 					const message = record.message.map(String).join("");
 
 					return [
