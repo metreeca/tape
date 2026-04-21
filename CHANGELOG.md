@@ -13,5 +13,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Make `log(config)` idempotent, silently accepting repeated deep-equal configurations
 - Fix `log(config)` preserving user-supplied `reset` flag instead of silently overwriting it
 - Fix `log(config)` duplicate logger error when overriding default categories
+- Preserve `"index"` as an explicit category segment so that `name.ts` and `name/index.ts` resolve
+  to distinct categories; root `src/index.ts` now resolves to `[".", "index"]` instead of `["."]`
 - Bump `@metreeca/core` dependency to `^0.9.18`
 

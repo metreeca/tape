@@ -70,13 +70,16 @@ export function log(): Logger;
  * - **Local code** (your project): Paths prefixed with `"."`. If URL provided
  *   (for instance, `import.meta.url`), pathname is parsed and segments after `src/`
  *   directory are extracted (or filename only if `src/` not found). Extensions
- *   and `"index"` segments are removed.
+ *   are removed; `"index"` is preserved as an explicit segment so that
+ *   `name.ts` and `name/index.ts` remain distinguishable.
  *
  * - **Imported packages** (from `node_modules/`): Non-scoped packages prefixed with
- *   `"@"` (for instance, `["@", "lodash"]`), scoped packages use two segments (for instance,
- *   `["@metreeca", "post"]`). Build directories (`dist`, `lib`, `build`, `out`)
- *   and redundant package name folders are skipped. Extensions and `"index"`
- *   segments are removed from remaining paths.
+ *   `"@"` (for instance, `["@", "lodash", "index"]` for a bare entry point), scoped
+ *   packages use two segments (for instance, `["@metreeca", "post", "index"]`).
+ *   Build directories (`dist`, `lib`, `build`, `out`) and redundant package name
+ *   folders are skipped. Extensions are removed from remaining paths; `"index"` is
+ *   preserved. Hierarchical matching means a filter at `@/lodash` still applies to
+ *   `@/lodash/index`.
  *
  * @param url File path or URL to create logger category from
  *

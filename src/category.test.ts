@@ -37,9 +37,9 @@ describe("parse()", () => {
 			expect(category(url, "lib")).toEqual([".", "utils"]);
 		});
 
-		test("handles root-level files when custom root matches last segment", () => {
+		test("preserves index for root-level index files under custom root", () => {
 			const url = "file:///Users/Alessandro/project/lib/index.ts";
-			expect(category(url, "lib")).toEqual(["."]);
+			expect(category(url, "lib")).toEqual([".", "index"]);
 		});
 
 		test("uses last segment when root directory not found", () => {
@@ -47,18 +47,30 @@ describe("parse()", () => {
 			expect(category(url, "src")).toEqual([".", "utils"]);
 		});
 
-		test("filters out index segments from project files", () => {
+		test("preserves index segment in project files", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/utils/index.ts";
-			expect(category(url)).toEqual([".", "utils"]);
+			expect(category(url)).toEqual([".", "utils", "index"]);
+		});
+
+		test("preserves index for root src file", () => {
+			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/index.ts";
+			expect(category(url)).toEqual([".", "index"]);
+		});
+
+		test("distinguishes name.ts from name/index.ts", () => {
+			const flat = "file:///Users/Alessandro/project/src/name.ts";
+			const nested = "file:///Users/Alessandro/project/src/name/index.ts";
+			expect(category(flat)).toEqual([".", "name"]);
+			expect(category(nested)).toEqual([".", "name", "index"]);
 		});
 
 	});
 
 	describe("node_modules packages", () => {
 
-		test("extracts scoped package name from node_modules", () => {
+		test("extracts scoped package name from node_modules with preserved index", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/@metreeca/core/dist/index.js";
-			expect(category(url)).toEqual(["@metreeca", "core"]);
+			expect(category(url)).toEqual(["@metreeca", "core", "index"]);
 		});
 
 		test("extracts scoped package with nested module path", () => {
@@ -98,9 +110,9 @@ describe("parse()", () => {
 			expect(category(url)).toEqual(["@", "pkg", "src", "utils", "pkg-helper"]);
 		});
 
-		test("filters out index segments from package files", () => {
+		test("preserves index segment in package entry file", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/lodash/index.js";
-			expect(category(url)).toEqual(["@", "lodash"]);
+			expect(category(url)).toEqual(["@", "lodash", "index"]);
 		});
 
 	});
@@ -159,7 +171,7 @@ describe("parse()", () => {
 
 		test("handles http URLs", () => {
 			const url = "http://example.com/node_modules/package/index.js";
-			expect(category(url)).toEqual(["@", "package"]);
+			expect(category(url)).toEqual(["@", "package", "index"]);
 		});
 
 		test("handles https URLs", () => {
@@ -207,7 +219,7 @@ describe("parse()", () => {
 
 		test("handles node_modules in custom schemes", () => {
 			const url = "bundler://project/node_modules/@scope/pkg/dist/index.js";
-			expect(category(url)).toEqual(["@scope", "pkg"]);
+			expect(category(url)).toEqual(["@scope", "pkg", "index"]);
 		});
 
 	});

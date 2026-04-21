@@ -65,7 +65,8 @@ export const external = "@";
  * - URIs with any scheme (file://, http://, data:, etc.) are parsed and pathname extracted
  * - node_modules paths: Extract package identifier, prefix non-scoped packages with `"@"`
  * - Local code: Prefix with `"."`, extract segments after root directory (default: `"src"`)
- * - Cleaning: Remove extensions, filter empty/`"index"` segments
+ * - Cleaning: Remove extensions, filter empty segments; `"index"` is preserved as an explicit
+ *   segment to distinguish sibling modules (e.g., `name.ts` vs `name/index.ts`)
  * - Build directories (`dist`, `lib`, `build`, `out`) are skipped
  *
  * @internal
@@ -148,7 +149,8 @@ function exported(segments: string[], root: string): readonly string[] {
  * Cleans and filters path segments.
  *
  * Splits segments on "/", removes file extensions and trailing slashes,
- * filters out empty segments and "index" segments.
+ * filters out empty segments. The `"index"` segment is preserved to
+ * distinguish sibling modules (e.g., `name.ts` vs `name/index.ts`).
  *
  * @param segments Path segments to clean
  *
@@ -158,5 +160,5 @@ function clean(segments: readonly string[]): readonly string[] {
 	return segments
 		.flatMap(s => s.split("/"))
 		.map(s => s.replace(/(?:\.\w+)*\/*$/, ""))
-		.filter(s => s && s !== "index");
+		.filter(s => s);
 }
