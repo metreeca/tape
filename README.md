@@ -40,8 +40,9 @@ LogTape uses a [hierarchical category system](https://logtape.org/manual/categor
 project code and external dependencies:
 
 - **Internal modules** (project code):
-	- First segment is `"/"` (e.g., `["/", "utils", "helper"]`)
-	- Extracted from paths after `src/` directory
+	- First segment is `"/"`, followed by the package directory and the path after `src/`
+	  (e.g., `["/", "project", "utils", "helper"]`)
+	- The package directory (the folder enclosing `src/`) keeps sibling packages in a monorepo distinct
 	- Auto-configures console logging at `"info"` level on first use
 
 - **External modules** (from `node_modules/`):
@@ -49,16 +50,16 @@ project code and external dependencies:
 	- Scoped packages: scope + name (e.g., `["@metreeca", "pipe", "feeds"]`)
 	- Skips build directories (`dist`, `lib`, `build`, `out`)
 
-| File Path                                   | Category                         |
-|---------------------------------------------|----------------------------------|
-| `file:///project/src/utils/logger.ts`       | `["/", "utils", "logger"]`       |
-| `file:///project/src/utils/index.ts`        | `["/", "utils", "index"]`        |
-| `node_modules/lodash/map.js`                | `["lodash", "map"]`              |
-| `node_modules/@metreeca/pipe/dist/index.js` | `["@metreeca", "pipe", "index"]` |
+| File Path                                   | Category                              |
+|---------------------------------------------|---------------------------------------|
+| `file:///project/src/utils/logger.ts`       | `["/", "project", "utils", "logger"]` |
+| `file:///project/src/utils/index.ts`        | `["/", "project", "utils", "index"]`  |
+| `node_modules/lodash/map.js`                | `["lodash", "map"]`                    |
+| `node_modules/@metreeca/pipe/dist/index.js` | `["@metreeca", "pipe", "index"]`      |
 
 `"index"` is preserved as an explicit segment so that `name.ts` and `name/index.ts` resolve to distinct categories
-(`["/", "name"]` vs `["/", "name", "index"]`). LogTape's hierarchical matching means a filter at `/name` or
-`@metreeca/pipe` still applies to nested `index` loggers.
+(`["/", "project", "name"]` vs `["/", "project", "name", "index"]`). LogTape's hierarchical matching means a filter at
+`/project/name` or `@metreeca/pipe` still applies to nested `index` loggers.
 
 ```typescript
 import { log } from '@metreeca/tape';

@@ -67,11 +67,12 @@ export function log(): Logger;
  *
  * Path resolution:
  *
- * - **Local code** (your project): Category starts with `"/"`. If URL provided
- *   (for instance, `import.meta.url`), pathname is parsed and segments after `src/`
- *   directory are extracted (or filename only if `src/` not found). Extensions
- *   are removed; `"index"` is preserved as an explicit segment so that
- *   `name.ts` and `name/index.ts` remain distinguishable.
+ * - **Local code** (your project): Category starts with `"/"`, followed by the package
+ *   directory (the folder enclosing `src/`) and the segments after `src/`. If a URL is
+ *   provided (for instance, `import.meta.url`), its pathname is parsed; when `src/` is absent
+ *   the filename only is used and the package directory is omitted. Extensions are removed;
+ *   `"index"` is preserved as an explicit segment so that `name.ts` and `name/index.ts` remain
+ *   distinguishable. The package directory keeps modules from sibling packages in a monorepo distinct.
  *
  * - **Imported packages** (from `node_modules/`): Non-scoped packages start with the bare
  *   package name (for instance, `["lodash", "index"]` for a bare entry point); scoped

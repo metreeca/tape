@@ -37,8 +37,8 @@ const roots = new Set(["dist", "lib", "build", "out"]);
  *
  * @example
  * ```ts
- * ["/", "utils", "helper"]  // Project module src/utils/helper.ts
- * ["/"]                     // All internal code
+ * ["/", "tape", "utils", "helper"]  // Project module tape/src/utils/helper.ts
+ * ["/"]                             // All internal code
  * ```
  */
 export const internal = "/";
@@ -68,7 +68,9 @@ export const external = "@";
  *
  * - URIs with any scheme (file://, http://, data:, etc.) are parsed and pathname extracted
  * - node_modules paths: Extract package identifier (bare name for non-scoped, scope + name for scoped)
- * - Local code: Prefix with `"/"`, extract segments after root directory (default: `"src"`)
+ * - Local code: Prefix with `"/"`, then the package directory (the segment immediately preceding the
+ *   root directory), then the segments after the root directory (default root: `"src"`). The package
+ *   directory is omitted when the root is absent or is itself the leading segment.
  * - Cleaning: Remove extensions, filter empty segments; `"index"` is preserved as an explicit
  *   segment to distinguish sibling modules (e.g., `name.ts` vs `name/index.ts`)
  * - Build directories (`dist`, `lib`, `build`, `out`) are skipped
@@ -163,20 +165,25 @@ function imported(segments: string[]): readonly string[] {
 /**
  * Builds project-relative path segments with the {@link internal} prefix.
  *
- * When root directory is found, returns all segments after it.
- * Otherwise, returns only the last segment as a fallback.
+ * When the root directory is found, prepends the package directory (the segment immediately preceding
+ * the root) followed by the segments after the root. The package directory is omitted when the root is
+ * the leading segment. When the root is absent, returns only the last segment as a fallback.
  *
  * @param segments Path segments to process
  * @param root Root directory name to search for (typically "src")
  *
- * @returns Array starting with the internal marker followed by cleaned path segments
+ * @returns Array starting with the internal marker, the package directory (when available), and the
+ * cleaned module path segments
  */
 function exported(segments: string[], root: string): readonly string[] {
 
 	const cleaned = clean(segments);
 	const codebase = cleaned.indexOf(root);
 
-	return [internal, ...cleaned.slice(codebase >= 0 ? codebase+1 : -1)];
+	const pkg = codebase >= 1 ? cleaned.slice(codebase-1, codebase) : [];
+	const modules = codebase >= 0 ? cleaned.slice(codebase+1) : cleaned.slice(-1);
+
+	return [internal, ...pkg, ...modules];
 }
 
 

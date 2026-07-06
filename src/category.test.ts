@@ -24,7 +24,7 @@ describe("parse()", () => {
 
 		test("extracts context from project file", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/pipelines/units/tasks/analyze.ts";
-			expect(category(url)).toEqual(["/", "pipelines", "units", "tasks", "analyze"]);
+			expect(category(url)).toEqual(["/", "Pipe", "pipelines", "units", "tasks", "analyze"]);
 		});
 
 		test("handles project file outside src", () => {
@@ -34,12 +34,12 @@ describe("parse()", () => {
 
 		test("supports custom project root", () => {
 			const url = "file:///Users/Alessandro/packages/core/lib/utils.ts";
-			expect(category(url, "lib")).toEqual(["/", "utils"]);
+			expect(category(url, "lib")).toEqual(["/", "core", "utils"]);
 		});
 
 		test("preserves index for root-level index files under custom root", () => {
 			const url = "file:///Users/Alessandro/project/lib/index.ts";
-			expect(category(url, "lib")).toEqual(["/", "index"]);
+			expect(category(url, "lib")).toEqual(["/", "project", "index"]);
 		});
 
 		test("uses last segment when root directory not found", () => {
@@ -49,19 +49,31 @@ describe("parse()", () => {
 
 		test("preserves index segment in project files", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/utils/index.ts";
-			expect(category(url)).toEqual(["/", "utils", "index"]);
+			expect(category(url)).toEqual(["/", "Pipe", "utils", "index"]);
 		});
 
 		test("preserves index for root src file", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/index.ts";
-			expect(category(url)).toEqual(["/", "index"]);
+			expect(category(url)).toEqual(["/", "Pipe", "index"]);
 		});
 
 		test("distinguishes name.ts from name/index.ts", () => {
 			const flat = "file:///Users/Alessandro/project/src/name.ts";
 			const nested = "file:///Users/Alessandro/project/src/name/index.ts";
-			expect(category(flat)).toEqual(["/", "name"]);
-			expect(category(nested)).toEqual(["/", "name", "index"]);
+			expect(category(flat)).toEqual(["/", "project", "name"]);
+			expect(category(nested)).toEqual(["/", "project", "name", "index"]);
+		});
+
+		test("qualifies project modules with the enclosing package directory", () => {
+			const url = "file:///Users/Alessandro/monorepo/packages/tape/src/utils/helper.ts";
+			expect(category(url)).toEqual(["/", "tape", "utils", "helper"]);
+		});
+
+		test("distinguishes the same module across monorepo packages", () => {
+			const a = "file:///Users/Alessandro/monorepo/packages/appA/src/index.ts";
+			const b = "file:///Users/Alessandro/monorepo/packages/appB/src/index.ts";
+			expect(category(a)).toEqual(["/", "appA", "index"]);
+			expect(category(b)).toEqual(["/", "appB", "index"]);
 		});
 
 	});
@@ -152,12 +164,12 @@ describe("parse()", () => {
 
 		test("strips any file extension", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/pipelines/units.py";
-			expect(category(url)).toEqual(["/", "pipelines", "units"]);
+			expect(category(url)).toEqual(["/", "Pipe", "pipelines", "units"]);
 		});
 
 		test("strips multiple extensions", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/pipelines/units.test.ts";
-			expect(category(url)).toEqual(["/", "pipelines", "units"]);
+			expect(category(url)).toEqual(["/", "Pipe", "pipelines", "units"]);
 		});
 
 		test("strips extension from package files", () => {

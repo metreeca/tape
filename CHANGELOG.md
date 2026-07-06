@@ -15,6 +15,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fix `log(config)` duplicate logger error when overriding default categories
 - Preserve `"index"` as an explicit category segment so that `name.ts` and `name/index.ts` resolve
   to distinct categories; root `src/index.ts` now resolves to `["/", "index"]` instead of `["."]`
+- Qualify internal category arrays with the enclosing package directory (the folder holding `src/`)
+  so that identically-named modules across monorepo packages resolve to distinct categories
+  (e.g. `["/", "tape", "utils"]` instead of `["/", "utils"]`)
 - Render log labels via a new `label()` helper: internal modules as `/module/path` with trailing
   `/` for `index` entries (e.g. `/utils/`, `/name/`), external packages as `package[:module]` with
   trailing `/` for `index` entries (e.g. `lodash/`, `@scope/pkg:utils/`)
