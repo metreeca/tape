@@ -16,237 +16,337 @@
 
 import { ConfigError, getConfig, resetSync } from "@logtape/logtape";
 import { describe, expect, it } from "vitest";
-import { log } from "./index.js";
+import { log, time } from "./index.js";
 
+describe("log", () => {
 
-describe("log(function)", () => {
+	describe("log(function)", () => {
 
-	it("should handle functions with no arguments", async () => {
-		const fn = log(async () => "success");
-		const result = await fn();
-		expect(result).toBe("success");
-	});
-
-	it("should handle functions with one argument", async () => {
-		const fn = log(async (x: number) => x*2);
-		const result = await fn(5);
-		expect(result).toBe(10);
-	});
-
-	it("should handle functions with multiple arguments", async () => {
-		const fn = log(async (x: number, y: string, z: boolean) => {
-			return `${x}-${y}-${z}`;
-		});
-		const result = await fn(42, "hello", true);
-		expect(result).toBe("42-hello-true");
-	});
-
-	it("should handle functions with different argument types", async () => {
-		const fn = log(async (
-			num: number,
-			str: string,
-			bool: boolean,
-			obj: { key: string },
-			arr: number[]
-		) => {
-			return { num, str, bool, obj, arr };
+		it("should handle functions with no arguments", async () => {
+			const fn = log(async () => "success");
+			const result = await fn();
+			expect(result).toBe("success");
 		});
 
-		const result = await fn(
-			123,
-			"test",
-			false,
-			{ key: "value" },
-			[1, 2, 3]
-		);
-
-		expect(result).toEqual({
-			num: 123,
-			str: "test",
-			bool: false,
-			obj: { key: "value" },
-			arr: [1, 2, 3]
-		});
-	});
-
-	it("should catch errors and return undefined", async () => {
-		const errorFn = log(async (x: number) => {
-			throw new Error("Test error");
+		it("should handle functions with one argument", async () => {
+			const fn = log(async (x: number) => x*2);
+			const result = await fn(5);
+			expect(result).toBe(10);
 		});
 
-		const result = await errorFn(5);
-		expect(result).toBeUndefined();
-	});
+		it("should handle functions with multiple arguments", async () => {
+			const fn = log(async (x: number, y: string, z: boolean) => {
+				return `${x}-${y}-${z}`;
+			});
+			const result = await fn(42, "hello", true);
+			expect(result).toBe("42-hello-true");
+		});
 
-	it("should log errors with the operator name", async () => {
-		async function namedFunction() {
-			throw new Error("Named function error");
-		}
+		it("should handle functions with different argument types", async () => {
+			const fn = log(async (
+				num: number,
+				str: string,
+				bool: boolean,
+				obj: { key: string },
+				arr: number[]
+			) => {
+				return { num, str, bool, obj, arr };
+			});
 
-		const guarded = log(namedFunction);
-		const result = await guarded();
+			const result = await fn(
+				123,
+				"test",
+				false,
+				{ key: "value" },
+				[1, 2, 3]
+			);
 
-		// Should return undefined when error occurs
-		expect(result).toBeUndefined();
-	});
+			expect(result).toEqual({
+				num: 123,
+				str: "test",
+				bool: false,
+				obj: { key: "value" },
+				arr: [1, 2, 3]
+			});
+		});
 
-	it("should handle synchronous functions that return promises", async () => {
-		const fn = log((x: number) => Promise.resolve(x+1));
-		const result = await fn(10);
-		expect(result).toBe(11);
-	});
+		it("should catch errors and return undefined", async () => {
+			const errorFn = log(async (x: number) => {
+				throw new Error("Test error");
+			});
 
-	it("should handle async functions that throw", async () => {
-		const fn = log(async (x: number, y: number) => {
-			if ( x === 0 ) {
-				throw new Error("Division by zero");
+			const result = await errorFn(5);
+			expect(result).toBeUndefined();
+		});
+
+		it("should log errors with the operator name", async () => {
+			async function namedFunction() {
+				throw new Error("Named function error");
 			}
-			return y/x;
+
+			const guarded = log(namedFunction);
+			const result = await guarded();
+
+			// Should return undefined when error occurs
+			expect(result).toBeUndefined();
 		});
 
-		const success = await fn(2, 10);
-		expect(success).toBe(5);
-
-		const failure = await fn(0, 10);
-		expect(failure).toBeUndefined();
-	});
-
-	it("should preserve type inference for return values", async () => {
-		const stringFn = log(async (x: number) => String(x));
-		const numberFn = log(async (x: string) => Number(x));
-		const objectFn = log(async () => ({ key: "value" }));
-
-		const str = await stringFn(123);
-		const num = await numberFn("456");
-		const obj = await objectFn();
-
-		// These should pass TypeScript type checking
-		expect(typeof str).toBe("string");
-		expect(typeof num).toBe("number");
-		expect(typeof obj).toBe("object");
-	});
-
-	it("should handle functions with rest parameters", async () => {
-		const sum = log(async (...numbers: number[]) => {
-			return numbers.reduce((acc, n) => acc+n, 0);
+		it("should handle synchronous functions that return promises", async () => {
+			const fn = log((x: number) => Promise.resolve(x+1));
+			const result = await fn(10);
+			expect(result).toBe(11);
 		});
 
-		expect(await sum(1, 2, 3, 4, 5)).toBe(15);
-		expect(await sum()).toBe(0);
-		expect(await sum(42)).toBe(42);
-	});
+		it("should handle async functions that throw", async () => {
+			const fn = log(async (x: number, y: number) => {
+				if ( x === 0 ) {
+					throw new Error("Division by zero");
+				}
+				return y/x;
+			});
 
-	it("should handle synchronous functions without wrapping in Promise", () => {
-		const syncFn = log((x: number) => x*2);
-		const result = syncFn(5);
+			const success = await fn(2, 10);
+			expect(success).toBe(5);
 
-		// Result should NOT be a Promise for sync functions
-		expect(result).not.toBeInstanceOf(Promise);
-		expect(result).toBe(10);
-	});
-
-	it("should handle synchronous functions that throw", () => {
-		const syncFn = log((x: number) => {
-			if ( x === 0 ) {
-				throw new Error("Zero not allowed");
-			}
-			return x*2;
+			const failure = await fn(0, 10);
+			expect(failure).toBeUndefined();
 		});
 
-		const success = syncFn(5);
-		expect(success).toBe(10);
+		it("should preserve type inference for return values", async () => {
+			const stringFn = log(async (x: number) => String(x));
+			const numberFn = log(async (x: string) => Number(x));
+			const objectFn = log(async () => ({ key: "value" }));
 
-		const failure = syncFn(0);
-		expect(failure).toBeUndefined();
+			const str = await stringFn(123);
+			const num = await numberFn("456");
+			const obj = await objectFn();
+
+			// These should pass TypeScript type checking
+			expect(typeof str).toBe("string");
+			expect(typeof num).toBe("number");
+			expect(typeof obj).toBe("object");
+		});
+
+		it("should handle functions with rest parameters", async () => {
+			const sum = log(async (...numbers: number[]) => {
+				return numbers.reduce((acc, n) => acc+n, 0);
+			});
+
+			expect(await sum(1, 2, 3, 4, 5)).toBe(15);
+			expect(await sum()).toBe(0);
+			expect(await sum(42)).toBe(42);
+		});
+
+		it("should handle synchronous functions without wrapping in Promise", () => {
+			const syncFn = log((x: number) => x*2);
+			const result = syncFn(5);
+
+			// Result should NOT be a Promise for sync functions
+			expect(result).not.toBeInstanceOf(Promise);
+			expect(result).toBe(10);
+		});
+
+		it("should handle synchronous functions that throw", () => {
+			const syncFn = log((x: number) => {
+				if ( x === 0 ) {
+					throw new Error("Zero not allowed");
+				}
+				return x*2;
+			});
+
+			const success = syncFn(5);
+			expect(success).toBe(10);
+
+			const failure = syncFn(0);
+			expect(failure).toBeUndefined();
+		});
+
+		it("should preserve Promise for async functions", async () => {
+			const asyncFn = log(async (x: number) => x*2);
+			const result = asyncFn(5);
+
+			// Result should be a Promise for async functions
+			expect(result).toBeInstanceOf(Promise);
+			expect(await result).toBe(10);
+		});
+
 	});
 
-	it("should preserve Promise for async functions", async () => {
-		const asyncFn = log(async (x: number) => x*2);
-		const result = asyncFn(5);
+	describe("log(config)", () => {
 
-		// Result should be a Promise for async functions
-		expect(result).toBeInstanceOf(Promise);
-		expect(await result).toBe(10);
+		it("should auto-configure on first internal logger retrieval", async () => {
+
+			// previous tests triggered auto-config via log(import.meta.url)
+			expect(getConfig()).not.toBeNull();
+
+		});
+
+		it("should accept first explicit config from clean state", async () => {
+
+			// custom is undefined (no prior explicit config), LogTape unconfigured
+			resetSync();
+			expect(() => log({ "/cold": "info" })).not.toThrow();
+
+		});
+
+		it("should allow explicit config to override auto-config", async () => {
+
+			// reset and trigger auto-config via internal logger retrieval
+			resetSync();
+			log("/trigger-auto");
+			expect(() => log({ "/override": "debug" })).not.toThrow();
+
+		});
+
+		it("should silently accept repeated identical simplified config", async () => {
+
+			// previous test configured with { "/override": "debug" }
+			expect(() => log({ "/override": "debug" })).not.toThrow();
+
+		});
+
+		it("should reject repeated different simplified config", async () => {
+
+			expect(() => log({ "/other": "trace" })).toThrow(ConfigError);
+
+		});
+
+		it("should allow explicit config with reset flag", async () => {
+
+			expect(() => log({
+				reset: true,
+				sinks: {},
+				loggers: []
+			})).not.toThrow();
+
+		});
+
+		it("should silently accept repeated identical full config", async () => {
+
+			// previous test configured with { reset: true, sinks: {}, loggers: [] }
+			expect(() => log({
+				sinks: {},
+				loggers: []
+			})).not.toThrow();
+
+		});
+
+		it("should reject repeated different full config", async () => {
+
+			expect(() => log({
+				sinks: {},
+				loggers: [{ category: ["test"], sinks: [] }]
+			})).toThrow(ConfigError);
+
+		});
+
+		it("should not auto-configure after reset when custom config was set", async () => {
+
+			resetSync();
+
+			// custom config was set by prior tests, so auto-config must not run
+			const logger = log("/test-module");
+			expect(logger).toBeTruthy();
+			expect(getConfig()).toBeNull();
+
+		});
+
 	});
 
 });
 
-describe("log(config)", () => {
 
-	it("should auto-configure on first internal logger retrieval", async () => {
+describe("time()", () => {
 
-		// previous tests triggered auto-config via log(import.meta.url)
-		expect(getConfig()).not.toBeNull();
+	describe("synchronous execution", () => {
 
-	});
+		it("should return the task result", () => {
+			const result = time(
+				() => 42,
+				() => {}
+			);
+			expect(result).toBe(42);
+		});
 
-	it("should accept first explicit config from clean state", async () => {
+		it("should invoke monitor with result and elapsed time", () => {
+			let monitoredValue: number | undefined;
+			let monitoredElapsed: number | undefined;
 
-		// custom is undefined (no prior explicit config), LogTape unconfigured
-		resetSync();
-		expect(() => log({ "/cold": "info" })).not.toThrow();
+			time(
+				() => 42,
+				(value, elapsed) => {
+					monitoredValue = value;
+					monitoredElapsed = elapsed;
+				}
+			);
 
-	});
+			expect(monitoredValue).toBe(42);
+			expect(monitoredElapsed).toBeGreaterThanOrEqual(0);
+		});
 
-	it("should allow explicit config to override auto-config", async () => {
+		it("should throw error from task without calling monitor", () => {
+			let monitorCalled = false;
 
-		// reset and trigger auto-config via internal logger retrieval
-		resetSync();
-		log("/trigger-auto");
-		expect(() => log({ "/override": "debug" })).not.toThrow();
+			expect(() => time(
+				() => { throw new Error("task error"); },
+				() => { monitorCalled = true; }
+			)).toThrow("task error");
 
-	});
-
-	it("should silently accept repeated identical simplified config", async () => {
-
-		// previous test configured with { "/override": "debug" }
-		expect(() => log({ "/override": "debug" })).not.toThrow();
-
-	});
-
-	it("should reject repeated different simplified config", async () => {
-
-		expect(() => log({ "/other": "trace" })).toThrow(ConfigError);
-
-	});
-
-	it("should allow explicit config with reset flag", async () => {
-
-		expect(() => log({
-			reset: true,
-			sinks: {},
-			loggers: []
-		})).not.toThrow();
+			expect(monitorCalled).toBe(false);
+		});
 
 	});
 
-	it("should silently accept repeated identical full config", async () => {
+	describe("asynchronous execution", () => {
 
-		// previous test configured with { reset: true, sinks: {}, loggers: [] }
-		expect(() => log({
-			sinks: {},
-			loggers: []
-		})).not.toThrow();
+		it("should return a promise resolving to task result", async () => {
+			const result = await time(
+				async () => 42,
+				() => {}
+			);
+			expect(result).toBe(42);
+		});
 
-	});
+		it("should invoke monitor with result and elapsed time", async () => {
+			let monitoredValue: number | undefined;
+			let monitoredElapsed: number | undefined;
 
-	it("should reject repeated different full config", async () => {
+			await time(
+				async () => 42,
+				(value, elapsed) => {
+					monitoredValue = value;
+					monitoredElapsed = elapsed;
+				}
+			);
 
-		expect(() => log({
-			sinks: {},
-			loggers: [{ category: ["test"], sinks: [] }]
-		})).toThrow(ConfigError);
+			expect(monitoredValue).toBe(42);
+			expect(monitoredElapsed).toBeGreaterThanOrEqual(0);
+		});
 
-	});
+		it("should reject with error from task without calling monitor", async () => {
+			let monitorCalled = false;
 
-	it("should not auto-configure after reset when custom config was set", async () => {
+			await expect(time(
+				async () => { throw new Error("task error"); },
+				() => { monitorCalled = true; }
+			)).rejects.toThrow("task error");
 
-		resetSync();
+			expect(monitorCalled).toBe(false);
+		});
 
-		// custom config was set by prior tests, so auto-config must not run
-		const logger = log("/test-module");
-		expect(logger).toBeTruthy();
-		expect(getConfig()).toBeNull();
+		it("should measure elapsed time accurately", async () => {
+			let elapsed: number | undefined;
+
+			await time(
+				async () => {
+					await new Promise(resolve => setTimeout(resolve, 10));
+					return "done";
+				},
+				(_value, e) => { elapsed = e; }
+			);
+
+			expect(elapsed).toBeGreaterThanOrEqual(10);
+		});
 
 	});
 

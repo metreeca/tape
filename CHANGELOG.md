@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/tape/commits/HEAD)
 
+### Added
+
+- Add `time()` utility for monitoring the execution time of synchronous and asynchronous tasks, reporting
+  the result value and the elapsed milliseconds to a monitor callback
+
 ### Changed
 
 - Narrow `log(config)` value type from `string` to `LogLevel`

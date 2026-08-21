@@ -169,6 +169,9 @@ export function log(config: Record<string, LogLevel>): void
  */
 export function log<T extends unknown[], R>(f: (...args: T) => Promise<R>): (...args: T) => Promise<undefined | R>;
 
+/**
+ * Retrieves loggers, configures LogTape, and guards functions.
+ */
 export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 	if ( a === undefined ) { // get root logger
@@ -197,77 +200,141 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 	}
 
+
+	function get(category: readonly string[] = []) {
+
+		if ( category[0] === internal && getConfig() === null && custom === undefined ) {
+			configureSync(defaults({}));
+		}
+
+		return getLogger(category);
+	}
+
+	function guard(f: (...args: unknown[]) => unknown) {
+
+		const logger = log(import.meta.url).getChild(f.name);
+
+		return (...args: unknown[]) => {
+			try {
+
+				const result = f(...args);
+
+				if ( result instanceof Promise ) {
+
+					return result.catch(error => {
+
+						logger.error(message(error));
+
+						return undefined;
+
+					});
+
+				} else {
+
+					return result;
+
+				}
+
+			} catch ( error ) {
+
+				logger.error(message(error));
+
+				return undefined;
+
+			}
+		};
+	}
+
+	function configure<S extends string, F extends string>(
+		source: Record<string, LogLevel> | Config<S, F>,
+		config: Config<S, F>
+	) {
+
+		const configured = getConfig() !== null;
+
+		if ( !configured // unconfigured or externally reset
+			|| custom === undefined // no prior custom config
+			|| source.reset === true // explicit reset requested
+		) {
+
+			configureSync<S, F>({
+				...config,
+				reset: configured
+			});
+
+			custom = source;
+
+		} else if ( !equals({ ...source, reset: undefined }, { ...custom, reset: undefined }) ) {
+
+			throw new ConfigError("expected matching configuration or explicit reset");
+
+		}
+
+	}
+
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function get(category: readonly string[] = []) {
+/**
+ * Executes an asynchronous task and monitors its execution time.
+ *
+ * Measures elapsed time from invocation until promise resolution.
+ *
+ * @typeParam T The type of value returned by the task
+ *
+ * @param task Function returning a promise to be timed
+ * @param monitor Callback invoked with the result value and elapsed time in milliseconds
+ *
+ * @returns A promise resolving to the task's return value
+ *
+ * @throws Any error thrown by the task (monitor is not called on error)
+ */
+export function time<T>(task: () => Promise<T>, monitor: (value: T, elapsed: number) => void): Promise<T>;
 
-	if ( category[0] === internal && getConfig() === null && custom === undefined ) {
-		configureSync(defaults({}));
-	}
+/**
+ * Executes a synchronous task and monitors its execution time.
+ *
+ * Measures elapsed time from invocation until completion.
+ *
+ * @typeParam T The type of value returned by the task
+ *
+ * @param task Function returning a value to be timed
+ * @param monitor Callback invoked with the result value and elapsed time in milliseconds
+ *
+ * @returns The task's return value
+ *
+ * @throws Any error thrown by the task (monitor is not called on error)
+ */
+export function time<T>(task: () => T, monitor: (value: T, elapsed: number) => void): T;
 
-	return getLogger(category);
-}
+/**
+ * Executes a task (sync or async) and monitors its execution time.
+ *
+ * @internal
+ */
+export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed: number) => void): T | Promise<T> {
 
-function guard(f: (...args: unknown[]) => unknown) {
+	const start = Date.now();
 
-	const logger = log(import.meta.url).getChild(f.name);
+	const value = task();
 
-	return (...args: unknown[]) => {
-		try {
+	if ( value instanceof Promise ) {
 
-			const result = f(...args);
+		return value.then(resolved => {
 
-			if ( result instanceof Promise ) {
+			monitor(resolved, Date.now()-start);
 
-				return result.catch(error => {
+			return resolved;
 
-					logger.error(message(error));
-
-					return undefined;
-
-				});
-
-			} else {
-
-				return result;
-
-			}
-
-		} catch ( error ) {
-
-			logger.error(message(error));
-
-			return undefined;
-
-		}
-	};
-}
-
-function configure<S extends string, F extends string>(
-	source: Record<string, LogLevel> | Config<S, F>,
-	config: Config<S, F>
-) {
-
-	const configured = getConfig() !== null;
-
-	if ( !configured // unconfigured or externally reset
-		|| custom === undefined // no prior custom config
-		|| source.reset === true // explicit reset requested
-	) {
-
-		configureSync<S, F>({
-			...config,
-			reset: configured
 		});
 
-		custom = source;
+	} else {
 
-	} else if ( !equals({ ...source, reset: undefined }, { ...custom, reset: undefined }) ) {
+		monitor(value, Date.now()-start);
 
-		throw new ConfigError("expected matching configuration or explicit reset");
+		return value;
 
 	}
 

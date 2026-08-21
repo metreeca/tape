@@ -8,10 +8,11 @@ A simplified TypeScript facade for the [LogTape](https://logtape.org/) logging f
 streamlines LogTape configuration with automatic zero-code logger setup for local codebase modules and built-in error
 handling for safe function execution. Key features include:
 
+- **Simplified Configuration**: sensible defaults with easy level management
 - **Hierarchical Categories**: automatic category derivation from `import.meta.url`
 - **Zero-Code Setup**: auto-configures console logging for internal project modules
-- **Simplified Configuration**: sensible defaults with easy level management
 - **Function Guarding**: automatic error logging with safe fallback to `undefined`
+- **Task Timing**: elapsed-time monitoring for synchronous and asynchronous tasks
 
 # Installation
 
@@ -31,13 +32,68 @@ npm install @metreeca/tape
 > This section introduces essential concepts and common patterns: see the
 > [API reference](https://metreeca.github.io/tape/) for complete coverage.
 
+Every logger is identified by a **category**, that is, a path locating the emitting module inside LogTape's
+[hierarchical category system](https://logtape.org/manual/categories). **@metreeca/tape** derives categories
+automatically from `import.meta.url`: internal project modules are rooted at `"/"`, modules loaded from `node_modules/`
+at their package name.
+
+Categories are written either as arrays, when looking up loggers, or in **label form**, when configuring levels: `"/"`
+for all internal code, `"/module"` for a specific internal module, `"lodash"` for a non-scoped package, and
+`"@scope/name"` for a scoped one.
+
+## Configuring LogTape
+
+Configure logging levels using simple category-to-[`LogLevel`](https://jsr.io/@logtape/logtape/doc/~/LogLevel)
+mappings.
+
+Keys are category labels, with a trailing `/` targeting the `index` module specifically (for instance, `"/name/"`
+matches only `src/name/index.ts`). Values are type-safe `LogLevel` strings (`"trace"`, `"debug"`, `"info"`,
+`"warning"`, `"error"`, `"fatal"`):
+
+```typescript
+import { log } from '@metreeca/tape';
+
+log({
+	"/": "info",               // All internal code
+	"/utils": "debug",         // Specific internal module
+	"lodash": "trace",         // Specific non-scoped package
+	"@metreeca/pipe": "debug"  // Specific scoped package
+});
+```
+
+For advanced use cases, pass a complete LogTape `Config` object:
+
+```typescript
+import { getFileSink } from '@logtape/file';
+import { getConsoleSink, log } from '@metreeca/tape';
+
+log({
+	sinks: {
+		console: getConsoleSink(),
+		file: getFileSink("app.log")
+	},
+	loggers: [
+		{
+			category: ["/"],
+			lowestLevel: "debug",
+			sinks: ["console", "file"]
+		}
+	]
+});
+```
+
+The file sink lives in the separate [`@logtape/file`](https://www.npmjs.com/package/@logtape/file) package; only
+LogTape's core exports are re-exported by **@metreeca/tape**.
+
+Both configuration forms are idempotent: repeated calls with a deep-equal configuration are silently accepted, while
+applying a different configuration throws unless the full `Config` form is used with `reset` set to `true`.
+
 ## Getting Loggers
 
 Retrieve logger instances for different scopes.
 
-LogTape uses a [hierarchical category system](https://logtape.org/manual/categories) for organizing loggers;
-**@metreeca/tape** automatically generates category arrays from `import.meta.url`, distinguishing between internal
-project code and external dependencies:
+Category arrays are generated from `import.meta.url`, distinguishing between internal project code and external
+dependencies:
 
 - **Internal modules** (project code):
 	- First segment is `"/"`, followed by the package directory and the path after `src/`
@@ -54,7 +110,7 @@ project code and external dependencies:
 |---------------------------------------------|---------------------------------------|
 | `file:///project/src/utils/logger.ts`       | `["/", "project", "utils", "logger"]` |
 | `file:///project/src/utils/index.ts`        | `["/", "project", "utils", "index"]`  |
-| `node_modules/lodash/map.js`                | `["lodash", "map"]`                    |
+| `node_modules/lodash/map.js`                | `["lodash", "map"]`                   |
 | `node_modules/@metreeca/pipe/dist/index.js` | `["@metreeca", "pipe", "index"]`      |
 
 `"index"` is preserved as an explicit segment so that `name.ts` and `name/index.ts` resolve to distinct categories
@@ -107,47 +163,32 @@ const safeParse = log((json: string) => JSON.parse(json));
 const data = safeParse("invalid json"); // Returns undefined, logs error
 ```
 
-## Configuring LogTape
+## Timing Tasks
 
-Configure logging levels using simple category-to-[`LogLevel`](https://jsr.io/@logtape/logtape/doc/~/LogLevel)
-mappings.
-
-Keys mirror the log label convention: `"/"` for all internal code, `"/module"` for a specific internal module, a bare
-package name for non-scoped packages, and `"@scope/name"` for scoped packages. A trailing `/` targets the `index`
-module specifically. Values are type-safe `LogLevel` strings (`"trace"`, `"debug"`, `"info"`, `"warning"`, `"error"`,
-`"fatal"`):
+Measure the execution time of synchronous or asynchronous tasks, reporting the result value and the elapsed
+milliseconds to a monitor callback:
 
 ```typescript
-log({
-	"/": "info",               // All internal code
-	"/utils": "debug",         // Specific internal module
-	"lodash": "trace",         // Specific non-scoped package
-	"@metreeca/pipe": "debug"  // Specific scoped package
-});
+import { log, time } from '@metreeca/tape';
+
+const logger = log(import.meta.url);
+
+// Async tasks are timed until the promise resolves
+
+const users = await time(
+	() => fetchUsers(),
+	(value, elapsed) => logger.info(`fetched ${value.length} users in ${elapsed} ms`)
+);
+
+// Sync tasks are timed until the call returns
+
+const report = time(
+	() => render(users),
+	(value, elapsed) => logger.debug(`rendered report in ${elapsed} ms`)
+);
 ```
 
-Both configuration forms are idempotent: repeated calls with a deep-equal configuration are silently accepted, while
-applying a different configuration throws unless the full `Config` form is used with `reset` set to `true`.
-
-For advanced use cases, pass a complete LogTape `Config` object:
-
-```typescript
-import { getConsoleSink } from '@metreeca/tape';
-
-log({
-	sinks: {
-		console: getConsoleSink(),
-		file: getFileSink("app.log")
-	},
-	loggers: [
-		{
-			category: ["/"],
-			lowestLevel: "debug",
-			sinks: ["console", "file"]
-		}
-	]
-});
-```
+The task's return value is passed through unchanged. Errors propagate to the caller and the monitor is not invoked.
 
 # Support
 
