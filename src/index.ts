@@ -25,9 +25,8 @@
  */
 
 import { Config, ConfigError, configureSync, getConfig, getLogger, type Logger, type LogLevel } from "@logtape/logtape";
-import { isArray, isFunction, isObject, isString } from "@metreeca/core";
-import { message } from "@metreeca/core/report";
-import { equals } from "@metreeca/core/deep";
+import { isArray, isError, isFunction, isObject, isString } from "@metreeca/core";
+import { equals } from "@metreeca/core/structures";
 import { category, internal } from "./category.js";
 import { defaults } from "./defaults.js";
 
@@ -243,6 +242,12 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 			}
 		};
+
+
+		function message(error: unknown): string {
+			return isError(error) ? error.message : String(error);
+		}
+
 	}
 
 	function configure<S extends string, F extends string>(

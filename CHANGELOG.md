@@ -32,5 +32,5 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   config keys use label-style syntax (`"/"`, `"/utils"`, `"lodash"`, `"@scope/pkg"` replace `"."`,
   `"./utils"`, `"@/lodash"`, `"@scope/pkg"`). A new `parse()` helper maps config keys to category
   arrays
-- Bump `@metreeca/core` dependency to `^0.9.18`
+- Bump `@metreeca/core` dependency to `^0.9.19`, realigning imports to its reorganised module layout
 
