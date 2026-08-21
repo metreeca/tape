@@ -13,6 +13,7 @@ handling for safe function execution. Key features include:
 - **Zero-Code Setup**: auto-configures console logging for internal project modules
 - **Function Guarding**: automatic error logging with safe fallback to `undefined`
 - **Task Timing**: elapsed-time monitoring for synchronous and asynchronous tasks
+- **Value Reporting**: readable value formatting, with invisible characters surfaced as escapes
 
 # Installation
 
@@ -182,13 +183,48 @@ const users = await time(
 
 // Sync tasks are timed until the call returns
 
-const report = time(
+const summary = time(
 	() => render(users),
-	(value, elapsed) => logger.debug(`rendered report in ${elapsed} ms`)
+	(value, elapsed) => logger.debug(`rendered summary in ${elapsed} ms`)
 );
 ```
 
 The task's return value is passed through unchanged. Errors propagate to the caller and the monitor is not invoked.
+
+## Reporting Values
+
+Format values for inclusion in log messages, bounding their extent and surfacing the characters that wouldn't otherwise
+be visible in the log:
+
+```typescript
+import { log, report } from '@metreeca/tape';
+
+const logger = log(import.meta.url);
+
+// Numbers are formatted with grouped digits
+
+logger.info(`imported ${report(1234567)} records`); // imported 1,234,567 records
+
+// Strings are quoted, bounding whitespace and surfacing invisible characters as escapes
+
+logger.warning(`unknown tag ${report("tag\n")}`); // unknown tag "tag\n"
+
+// Overlong content is clipped to a maximum number of code points
+
+logger.debug(`request body ${report(body, 40)}`);
+```
+
+Numbers are formatted with grouped digits, strings are reported as quoted literals, and any other value is reported
+through its string representation.
+
+Quotation marks bound leading and trailing whitespace, so the extent of the reported string content is unambiguous.
+Every character that would otherwise close the literal or reach the log without a visible glyph of its own is escaped,
+so that nothing in the content can hide or corrupt it: escapes take the two-character JSON form where one is defined
+(`\"`, `\\`, `\b`, `\f`, `\n`, `\r`, `\t`) and the `\uXXXX` / `\UXXXXXXXX` numeric form otherwise. Characters that
+render as part of a neighbouring glyph, like the combining marks and the variation selectors, are reported as they are.
+
+The optional `length` argument clips overlong string content to a maximum number of code points, counted before
+escaping, replacing the last retained one with an ellipsis.
 
 # Support
 

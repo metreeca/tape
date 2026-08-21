@@ -16,7 +16,8 @@
 
 import { ConfigError, getConfig, resetSync } from "@logtape/logtape";
 import { describe, expect, it } from "vitest";
-import { log, time } from "./index.js";
+import { report, log, time } from "./index.js";
+
 
 describe("log", () => {
 
@@ -255,7 +256,6 @@ describe("log", () => {
 
 });
 
-
 describe("time()", () => {
 
 	describe("synchronous execution", () => {
@@ -346,6 +346,158 @@ describe("time()", () => {
 			);
 
 			expect(elapsed).toBeGreaterThanOrEqual(10);
+		});
+
+	});
+
+});
+
+describe("report()", () => {
+
+	// Test content is built from code points rather than written as literals: spelling invisible characters out would
+	// embed in this source the very kind of content the tested pattern exists to expose, and would leave the cases
+	// indistinguishable from one another on review.
+
+	/**
+	 * Reports the code points, surrounded by visible sentinels marking the extent of the reported content.
+	 */
+	function escaped(...codes: number[]): string {
+		return report(`a${String.fromCodePoint(...codes)}b`);
+	}
+
+	/**
+	 * Asserts that the code points are reported as they are, with no escaping beyond the surrounding quotes.
+	 */
+	function preserved(...codes: number[]): void {
+
+		const value = String.fromCodePoint(...codes);
+
+		expect(report(value)).toBe(`"${value}"`);
+
+	}
+
+	describe("values", () => {
+
+		it("should format numbers with US locale conventions", () => {
+			expect(report(1234567.5)).toBe("1,234,567.5");
+		});
+
+		it("should report other values through their string representation", () => {
+			expect(report(undefined)).toBe("undefined");
+			expect(report(null)).toBe("null");
+			expect(report(true)).toBe("true");
+			expect(report(new Error("boom"))).toBe("Error: boom");
+		});
+
+	});
+
+	describe("strings", () => {
+
+		it("should delimit content with quotation marks", () => {
+			expect(report(" padded ")).toBe("\" padded \"");
+		});
+
+		it("should escape the quotation mark and the reverse solidus", () => {
+			expect(report("say \"hi\"")).toBe("\"say \\\"hi\\\"\"");
+			expect(report("back\\slash")).toBe("\"back\\\\slash\"");
+		});
+
+		it("should clip overlong content ahead of escaping", () => {
+			expect(report("a very long value", 8)).toBe(`"a very ${String.fromCodePoint(0x2026)}"`);
+		});
+
+		it("should leave content unclipped by default", () => {
+			expect(report("a very long value")).toBe("\"a very long value\"");
+		});
+
+	});
+
+	describe("invisible characters", () => {
+
+		it("should escape control characters", () => {
+			expect(escaped(0x0000)).toBe("\"a\\u0000b\"");
+			expect(escaped(0x007F)).toBe("\"a\\u007Fb\"");
+		});
+
+		it("should report the control characters JSON gives a short escape to in that form", () => {
+			expect(escaped(0x0008)).toBe("\"a\\bb\"");
+			expect(escaped(0x000A)).toBe("\"a\\nb\"");
+			expect(escaped(0x0009)).toBe("\"a\\tb\"");
+		});
+
+		it("should escape line and paragraph separators", () => {
+			expect(escaped(0x2028)).toBe("\"a\\u2028b\"");
+			expect(escaped(0x2029)).toBe("\"a\\u2029b\"");
+		});
+
+		it("should escape space separators other than the plain space", () => {
+			expect(escaped(0x00A0)).toBe("\"a\\u00A0b\"");
+			expect(escaped(0x3000)).toBe("\"a\\u3000b\"");
+		});
+
+		it("should escape format characters", () => {
+			expect(escaped(0x00AD)).toBe("\"a\\u00ADb\"");
+			expect(escaped(0x202E)).toBe("\"a\\u202Eb\"");
+			expect(escaped(0xE0041)).toBe("\"a\\U000E0041b\"");
+		});
+
+		it("should escape default ignorable letters", () => {
+			expect(escaped(0x115F)).toBe("\"a\\u115Fb\"");
+			expect(escaped(0x1160)).toBe("\"a\\u1160b\"");
+			expect(escaped(0x3164)).toBe("\"a\\u3164b\"");
+			expect(escaped(0xFFA0)).toBe("\"a\\uFFA0b\"");
+		});
+
+		it("should escape default ignorable marks", () => {
+			expect(escaped(0x034F)).toBe("\"a\\u034Fb\"");
+		});
+
+		it("should escape unassigned code points", () => {
+			expect(escaped(0x0378)).toBe("\"a\\u0378b\"");
+			expect(escaped(0xFDD0)).toBe("\"a\\uFDD0b\"");
+			expect(escaped(0xFFFE)).toBe("\"a\\uFFFEb\"");
+		});
+
+		it("should escape private use code points", () => {
+			expect(escaped(0xE000)).toBe("\"a\\uE000b\"");
+			expect(escaped(0xF8FF)).toBe("\"a\\uF8FFb\"");
+			expect(escaped(0x100000)).toBe("\"a\\U00100000b\"");
+		});
+
+		it("should escape the blank braille pattern", () => {
+			expect(escaped(0x2800)).toBe("\"a\\u2800b\"");
+		});
+
+		it("should escape isolated surrogates", () => {
+			expect(escaped(0xD800)).toBe("\"a\\uD800b\"");
+			expect(escaped(0xDFFF)).toBe("\"a\\uDFFFb\"");
+		});
+
+	});
+
+	describe("visible characters", () => {
+
+		it("should report the plain space as it is", () => {
+			preserved(0x0061, 0x0020, 0x0062); // a b
+		});
+
+		it("should report the zero width joiner as it is", () => {
+			preserved(0x1F468, 0x200D, 0x1F469); // man + ZWJ + woman
+		});
+
+		it("should report variation selectors as they are", () => {
+			preserved(0x2764, 0xFE0F); // heart, emoji presentation
+			preserved(0x2764, 0xFE0E); // heart, text presentation
+			preserved(0x845B, 0xE0100); // ideograph, first ideographic variant
+		});
+
+		it("should report combining marks as they are", () => {
+			preserved(0x006E, 0x006F, 0x0065, 0x0301, 0x006C); // noel, decomposed
+			preserved(0x0928, 0x092E, 0x0938, 0x094D, 0x0924, 0x0947); // namaste, devanagari
+		});
+
+		it("should report well-formed surrogate pairs as they are", () => {
+			preserved(0x0061, 0x1F600, 0x0062); // a + emoji + b
 		});
 
 	});

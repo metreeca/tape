@@ -17,21 +17,57 @@
 /**
  * Simplified facade for the LogTape logging framework.
  *
- * Provides the {@link log} function for logger retrieval, configuration, and
- * function guarding with automatic path-based categorisation and zero-configuration
- * defaults.
+ * Provides the {@link log} function for logger retrieval, LogTape configuration and function guarding, with categories
+ * derived automatically from module paths and zero-configuration defaults for local code, the {@link time} function for
+ * monitoring task execution, and the {@link report} function for formatting values as readable log content.
  *
- * @module
+ * @module index
  */
 
 import { Config, ConfigError, configureSync, getConfig, getLogger, type Logger, type LogLevel } from "@logtape/logtape";
-import { isArray, isError, isFunction, isObject, isString } from "@metreeca/core";
+import { isArray, isError, isFunction, isNumber, isObject, isString } from "@metreeca/core";
 import { equals } from "@metreeca/core/structures";
 import { category, internal } from "./category.js";
 import { defaults } from "./defaults.js";
+import { escape, clip } from "@metreeca/core/strings";
 
 
 export * from "@logtape/logtape";
+
+
+/**
+ * Matches the characters a quoted report may not carry as they are.
+ *
+ * Covers the quotation mark and the reverse solidus, which delimit and escape the report itself, and every character
+ * that would otherwise reach the log without a visible glyph of its own:
+ *
+ * - control characters (`Cc`), line and paragraph separators (`Zl`, `Zp`) and space separators (`Zs`) other than the
+ *   plain space, which would break the report across lines or pad it invisibly;
+ * - format characters (`Cf`), which carry no glyph and may reorder the surrounding text;
+ * - default ignorable code points, which render as nothing whatever their general category, catching the invisible
+ *   letters (`U+115F`, `U+1160`, `U+3164`, `U+FFA0`) and marks (`U+034F`) the categories above miss;
+ * - unassigned (`Cn`) and private use (`Co`) code points, whose rendering depends on the font rather than on Unicode;
+ * - the blank braille pattern (`U+2800`), a symbol by general category that renders as whitespace;
+ * - isolated surrogates, which denote no character at all: unicode matching folds a well-formed pair into the single
+ *   supplementary code point it denotes, so only an unpaired half is matched.
+ *
+ * The zero width joiner and the variation selectors (`U+FE00`-`U+FE0F`, `U+E0100`-`U+E01EF`) are reported as they are:
+ * none of them renders on its own, but each alters a visible neighbouring glyph, so escaping them would break composed
+ * emoji and ideographic variants without revealing anything the rendered text doesn't already show.
+ *
+ * Combining marks are reported as they are as well, bar the default ignorable ones: they render as part of the
+ * grapheme they attach to, and escaping them would make text in the scripts that require them illegible; a leading
+ * mark attaches to the opening quotation mark of the report.
+ *
+ * Membership in the unassigned category tracks the Unicode version of the runtime, so a code point assigned after that
+ * version is reported as an escape.
+ */
+const QuotePattern = new RegExp([
+	"[\"\\\\\\p{Cc}\\p{Zl}\\p{Zp}\\p{Cn}\\p{Co}\\u2800\\uD800-\\uDFFF]",
+	"[^\\P{Cf}\\u200D]",
+	"[^\\P{Zs} ]",
+	"[^\\P{Default_Ignorable_Code_Point}\\p{Variation_Selector}\\u200D]"
+].join("|"), "gu");
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -342,5 +378,42 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
 		return value;
 
 	}
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Formats a value as a readable report.
+ *
+ * Reports numbers with grouped digits, strings as quoted literals with their invisible characters surfaced as escapes,
+ * and every other value through its string representation.
+ *
+ * String content is delimited by quotation marks, so leading and trailing whitespace is bounded and its extent is
+ * unambiguous, and is escaped so that nothing it carries can hide from the log or corrupt it: the quotation mark and
+ * the reverse solidus, which would otherwise close or escape the literal, and every character with no visible glyph
+ * of its own, that is control characters, line and paragraph separators, space separators other than the plain space,
+ * format characters, default ignorable code points whatever their general category, unassigned and private use code
+ * points, the blank braille pattern and isolated surrogates. Escapes take the two-character JSON form where one is
+ * defined (`\"`, `\\`, `\b`, `\f`, `\n`, `\r`, `\t`) and the `\uXXXX` / `\UXXXXXXXX` numeric form otherwise.
+ *
+ * The zero width joiner, the variation selectors and the combining marks are reported as they are: none of them
+ * renders on its own, but each alters a visible neighbouring glyph, so escaping them would break composed emoji,
+ * ideographic variants and the scripts that require marks, without revealing anything the rendered text doesn't
+ * already show. A leading mark attaches to the opening quotation mark of the report.
+ *
+ * @param value The value to report
+ * @param length The maximum length in code points of the reported string content, counted before escaping; longer
+ *     content is clipped, with the last retained code point replaced by an ellipsis; `0` or a negative value disables
+ *     clipping; ignored for values other than strings; defaults to `0`
+ *
+ * @returns The formatted number, quoted and escaped string literal, or string representation of `value`
+ */
+export function report(value: unknown, length?: number): string {
+
+	return isNumber(value) ? value.toLocaleString("en-US")
+		: isString(value) ? `"${escape(clip(value, length), QuotePattern)}"`
+			: String(value);
 
 }
