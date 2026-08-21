@@ -12,8 +12,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add `time()` utility for monitoring the execution time of synchronous and asynchronous tasks, reporting
   the result value and the elapsed milliseconds to a monitor callback
 - Add `report()` utility for formatting values as readable log content, rendering numbers with grouped
-  digits and strings as quoted literals with their invisible characters surfaced as escapes and overlong
-  content optionally clipped
+  digits, strings as quoted literals with their invisible characters surfaced as escapes and overlong
+  content optionally clipped, and errors through their message
 
 ### Changed
 

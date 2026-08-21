@@ -382,11 +382,20 @@ describe("report()", () => {
 			expect(report(1234567.5)).toBe("1,234,567.5");
 		});
 
+		it("should report errors through their message", () => {
+			expect(report(new Error("boom"))).toBe("boom");
+			expect(report(new TypeError("boom"))).toBe("boom");
+		});
+
+		it("should report error messages as they are", () => {
+			expect(report(new Error(" a very long value "), 8)).toBe(" a very long value ");
+		});
+
 		it("should report other values through their string representation", () => {
 			expect(report(undefined)).toBe("undefined");
 			expect(report(null)).toBe("null");
 			expect(report(true)).toBe("true");
-			expect(report(new Error("boom"))).toBe("Error: boom");
+			expect(report({ message: "boom" })).toBe("[object Object]");
 		});
 
 	});

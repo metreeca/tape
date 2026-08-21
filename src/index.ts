@@ -26,11 +26,10 @@
 
 import { Config, ConfigError, configureSync, getConfig, getLogger, type Logger, type LogLevel } from "@logtape/logtape";
 import { isArray, isError, isFunction, isNumber, isObject, isString } from "@metreeca/core";
+import { clip, escape } from "@metreeca/core/strings";
 import { equals } from "@metreeca/core/structures";
 import { category, internal } from "./category.js";
 import { defaults } from "./defaults.js";
-import { escape, clip } from "@metreeca/core/strings";
-
 
 export * from "@logtape/logtape";
 
@@ -388,7 +387,14 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
  * Formats a value as a readable report.
  *
  * Reports numbers with grouped digits, strings as quoted literals with their invisible characters surfaced as escapes,
- * and every other value through its string representation.
+ * errors through their message, and every other value through its string representation.
+ *
+ * **Numbers**
+ *
+ * Numbers are formatted with the digit grouping of the `en-US` locale, whatever the ambient locale, so that reports of
+ * the same value are comparable across systems.
+ *
+ * **Strings**
  *
  * String content is delimited by quotation marks, so leading and trailing whitespace is bounded and its extent is
  * unambiguous, and is escaped so that nothing it carries can hide from the log or corrupt it: the quotation mark and
@@ -403,17 +409,30 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
  * ideographic variants and the scripts that require marks, without revealing anything the rendered text doesn't
  * already show. A leading mark attaches to the opening quotation mark of the report.
  *
+ * **Errors**
+ *
+ * Errors are reported through their message, without the class name their string representation would prefix it with:
+ * the level and the context of the log entry already state that a failure is being reported. Messages are composed by
+ * the throwing code rather than carried in from the outside, so they are reported as they are, neither delimited,
+ * escaped nor clipped: report the offending values separately where their extent or their invisible content matters.
+ *
+ * **Other Values**
+ *
+ * Every other value is reported through its string representation, error-like values that are not `Error` instances
+ * included, whatever message-like properties they may carry.
+ *
  * @param value The value to report
  * @param length The maximum length in code points of the reported string content, counted before escaping; longer
  *     content is clipped, with the last retained code point replaced by an ellipsis; `0` or a negative value disables
  *     clipping; ignored for values other than strings; defaults to `0`
  *
- * @returns The formatted number, quoted and escaped string literal, or string representation of `value`
+ * @returns The formatted number, quoted and escaped string literal, error message, or string representation of `value`
  */
 export function report(value: unknown, length?: number): string {
 
 	return isNumber(value) ? value.toLocaleString("en-US")
 		: isString(value) ? `"${escape(clip(value, length), QuotePattern)}"`
-			: String(value);
+			: isError(value) ? value.message
+				: String(value);
 
 }

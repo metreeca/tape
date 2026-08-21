@@ -212,10 +212,17 @@ logger.warning(`unknown tag ${report("tag\n")}`); // unknown tag "tag\n"
 // Overlong content is clipped to a maximum number of code points
 
 logger.debug(`request body ${report(body, 40)}`);
+
+// Errors are reported through their message
+
+logger.error(`import failed / ${report(error)}`); // import failed / connection refused
 ```
 
-Numbers are formatted with grouped digits, strings are reported as quoted literals, and any other value is reported
-through its string representation.
+Numbers are formatted with grouped digits, strings are reported as quoted literals, errors through their message, and
+any other value through its string representation.
+
+Digit grouping follows the `en-US` locale, whatever the ambient locale, so that reports of the same value are
+comparable across systems.
 
 Quotation marks bound leading and trailing whitespace, so the extent of the reported string content is unambiguous.
 Every character that would otherwise close the literal or reach the log without a visible glyph of its own is escaped,
@@ -225,6 +232,11 @@ render as part of a neighbouring glyph, like the combining marks and the variati
 
 The optional `length` argument clips overlong string content to a maximum number of code points, counted before
 escaping, replacing the last retained one with an ellipsis.
+
+Error messages are reported without the class name their string representation would prefix them with, as the level and
+the context of the log entry already state that a failure is being reported. They are reported as they are, neither
+delimited, escaped nor clipped: report the offending values separately where their extent or their invisible content
+matters.
 
 # Support
 
