@@ -216,10 +216,14 @@ logger.debug(`request body ${report(body, 40)}`);
 // Errors are reported through their message
 
 logger.error(`import failed / ${report(error)}`); // import failed / connection refused
+
+// Functions are reported through their name
+
+logger.debug(`retrying ${report(fetchUsers)}`); // retrying fetchUsers()
 ```
 
-Numbers are formatted with grouped digits, strings are reported as quoted literals, errors through their message, and
-any other value through its string representation.
+Numbers are formatted with grouped digits, strings are reported as quoted literals, errors through their message,
+functions through their name, and any other value through its string representation.
 
 Digit grouping follows the `en-US` locale, whatever the ambient locale, so that reports of the same value are
 comparable across systems.
@@ -237,6 +241,11 @@ Error messages are reported without the class name their string representation w
 the context of the log entry already state that a failure is being reported. They are reported as they are, neither
 delimited, escaped nor clipped: report the offending values separately where their extent or their invisible content
 matters.
+
+Functions are reported through their name followed by an empty argument list, classes and other callable values
+included, rather than through the source text their string representation would expose. Names are reported as they are,
+neither escaped nor clipped; anonymous functions take the `function` keyword in place of a name and are reported as
+`function()`.
 
 # Support
 

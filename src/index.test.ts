@@ -391,6 +391,25 @@ describe("report()", () => {
 			expect(report(new Error(" a very long value "), 8)).toBe(" a very long value ");
 		});
 
+		it("should report functions through their name", () => {
+
+			const arrow = (): void => {};
+
+			expect(report(function declared() {})).toBe("declared()");
+			expect(report(arrow)).toBe("arrow()");
+			expect(report(class Declared {})).toBe("Declared()");
+
+		});
+
+		it("should report anonymous functions through a placeholder name", () => {
+			expect(report(() => {})).toBe("function()");
+			expect(report(function () {})).toBe("function()");
+		});
+
+		it("should report function names as they are", () => {
+			expect(report(function aVeryLongName() {}, 8)).toBe("aVeryLongName()");
+		});
+
 		it("should report other values through their string representation", () => {
 			expect(report(undefined)).toBe("undefined");
 			expect(report(null)).toBe("null");

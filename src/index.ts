@@ -387,7 +387,7 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
  * Formats a value as a readable report.
  *
  * Reports numbers with grouped digits, strings as quoted literals with their invisible characters surfaced as escapes,
- * errors through their message, and every other value through its string representation.
+ * errors through their message, functions through their name, and every other value through its string representation.
  *
  * **Numbers**
  *
@@ -416,6 +416,15 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
  * the throwing code rather than carried in from the outside, so they are reported as they are, neither delimited,
  * escaped nor clipped: report the offending values separately where their extent or their invisible content matters.
  *
+ * **Functions**
+ *
+ * Functions are reported through their name followed by an empty argument list, classes and other callable values
+ * included, rather than through the source text their string representation would expose: the name identifies the
+ * function in the code, while its body would bury the log entry under content that belongs to the source. Names are
+ * code-defined, so they are reported as they are, neither escaped nor clipped. Anonymous functions, whose name is
+ * empty because no declaration, binding or property definition supplied one, take the `function` keyword in place of a
+ * name and are reported as `function()`.
+ *
  * **Other Values**
  *
  * Every other value is reported through its string representation, error-like values that are not `Error` instances
@@ -426,13 +435,15 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
  *     content is clipped, with the last retained code point replaced by an ellipsis; `0` or a negative value disables
  *     clipping; ignored for values other than strings; defaults to `0`
  *
- * @returns The formatted number, quoted and escaped string literal, error message, or string representation of `value`
+ * @returns The formatted number, quoted and escaped string literal, error message, function name with an empty
+ *     argument list, or string representation of `value`
  */
 export function report(value: unknown, length?: number): string {
 
 	return isNumber(value) ? value.toLocaleString("en-US")
 		: isString(value) ? `"${escape(clip(value, length), QuotePattern)}"`
 			: isError(value) ? value.message
-				: String(value);
+				: isFunction(value) ? `${value.name || "function"}()`
+					: String(value);
 
 }

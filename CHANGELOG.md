@@ -13,7 +13,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the result value and the elapsed milliseconds to a monitor callback
 - Add `report()` utility for formatting values as readable log content, rendering numbers with grouped
   digits, strings as quoted literals with their invisible characters surfaced as escapes and overlong
-  content optionally clipped, and errors through their message
+  content optionally clipped, errors through their message, and functions through their name
 
 ### Changed
 
