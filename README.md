@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@metreeca/tape)](https://www.npmjs.com/package/@metreeca/tape)
 
-A simplified TypeScript facade for the [LogTape](https://logtape.org/) logging framework.
+Simplified facade for the [LogTape](https://logtape.org/) logging framework.
 
 **@metreeca/tape** provides an opinionated, easy-to-use logging facade for TypeScript/JavaScript applications. It
 streamlines LogTape configuration with automatic zero-code logger setup for local codebase modules and built-in error
