@@ -7,6 +7,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/tape/commits/HEAD)
 
+## [0.10.0](https://github.com/metreeca/tape/compare/v0.9.1...v0.10.0) - 2026-08-28
+
 ### Added
 
 - Add `time()` utility for monitoring the execution time of synchronous and asynchronous tasks, reporting
@@ -19,8 +21,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Narrow `log(config)` value type from `string` to `LogLevel`
 - Make `log(config)` idempotent, silently accepting repeated deep-equal configurations
-- Fix `log(config)` preserving user-supplied `reset` flag instead of silently overwriting it
-- Fix `log(config)` duplicate logger error when overriding default categories
 - Preserve `"index"` as an explicit category segment so that `name.ts` and `name/index.ts` resolve
   to distinct categories; root `src/index.ts` now resolves to `["/", "index"]` instead of `["."]`
 - Qualify internal category arrays with the enclosing package directory (the folder holding `src/`)
@@ -39,4 +39,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **BREAKING**: Bump `@logtape/logtape` dependency to `^2.3.2`: the re-exported LogTape surface drops the
   deprecated `LoggerConfig.level` property, replaced by `lowestLevel` for a minimum level or by `filters`
   for finer selection
+
+### Fixed
+
+- Preserve the user-supplied `reset` flag in `log(config)` instead of silently overwriting it
+- Prevent the `log(config)` duplicate logger error when overriding default categories
 
