@@ -58,7 +58,7 @@ log({
 	"/": "info",               // All internal code
 	"/utils": "debug",         // Specific internal module
 	"lodash": "trace",         // Specific non-scoped package
-	"@metreeca/pipe": "debug"  // Specific scoped package
+	"@metreeca/flow": "debug"  // Specific scoped package
 });
 ```
 
@@ -104,7 +104,7 @@ dependencies:
 
 - **External modules** (from `node_modules/`):
 	- Non-scoped packages: bare package name (e.g., `["lodash", "map"]`)
-	- Scoped packages: scope + name (e.g., `["@metreeca", "pipe", "feeds"]`)
+	- Scoped packages: scope + name (e.g., `["@metreeca", "flow", "feeds"]`)
 	- Skips build directories (`dist`, `lib`, `build`, `out`)
 
 | File Path                                   | Category                              |
@@ -112,11 +112,11 @@ dependencies:
 | `file:///project/src/utils/logger.ts`       | `["/", "project", "utils", "logger"]` |
 | `file:///project/src/utils/index.ts`        | `["/", "project", "utils", "index"]`  |
 | `node_modules/lodash/map.js`                | `["lodash", "map"]`                   |
-| `node_modules/@metreeca/pipe/dist/index.js` | `["@metreeca", "pipe", "index"]`      |
+| `node_modules/@metreeca/flow/dist/index.js` | `["@metreeca", "flow", "index"]`      |
 
 `"index"` is preserved as an explicit segment so that `name.ts` and `name/index.ts` resolve to distinct categories
 (`["/", "project", "name"]` vs `["/", "project", "name", "index"]`). LogTape's hierarchical matching means a filter at
-`/project/name` or `@metreeca/pipe` still applies to nested `index` loggers.
+`/project/name` or `@metreeca/flow` still applies to nested `index` loggers.
 
 ```typescript
 import { log } from '@metreeca/tape';
