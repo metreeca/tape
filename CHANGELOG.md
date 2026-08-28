@@ -35,5 +35,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   config keys use label-style syntax (`"/"`, `"/utils"`, `"lodash"`, `"@scope/pkg"` replace `"."`,
   `"./utils"`, `"@/lodash"`, `"@scope/pkg"`). A new `parse()` helper maps config keys to category
   arrays
-- Bump `@metreeca/core` dependency to `^0.9.19`, realigning imports to its reorganised module layout
+- Bump `@metreeca/core` dependency to `^0.9.22`, realigning imports to its reorganised module layout
+- **BREAKING**: Bump `@logtape/logtape` dependency to `^2.3.2`: the re-exported LogTape surface drops the
+  deprecated `LoggerConfig.level` property, replaced by `lowestLevel` for a minimum level or by `filters`
+  for finer selection
 
