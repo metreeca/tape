@@ -6,6 +6,9 @@
   ],
   "sortEntryPoints": false,
   "groupOrder": [
+    "Variables",
+    "Interfaces",
+    "Type Aliases",
     "*"
   ],
   "useFirstParagraphOfCommentAsSummary": true,
