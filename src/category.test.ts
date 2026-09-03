@@ -172,6 +172,11 @@ describe("parse()", () => {
 			expect(category(url)).toEqual(["/", "Pipe", "pipelines", "units"]);
 		});
 
+		test("strips multiple unrelated extensions", () => {
+			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/src/pipelines/module.core.ts";
+			expect(category(url)).toEqual(["/", "Pipe", "pipelines", "module"]);
+		});
+
 		test("strips extension from package files", () => {
 			const url = "file:///Users/Alessandro/Metreeca/Projects/EC2U/Pipe/node_modules/lodash/dist/lodash.min.js";
 			expect(category(url)).toEqual([ "lodash", "lodash"]);
