@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/tape/commits/HEAD)
 
+### Changed
+
+- Clip overlong source labels in console entries to the fixed 20-character field width, so that prefix,
+  source and message stay column-aligned across entries
+
 ## [0.10.0](https://github.com/metreeca/tape/compare/v0.9.1...v0.10.0) - 2026-08-28
 
 ### Added
