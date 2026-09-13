@@ -47,9 +47,10 @@ for all internal code, `"/module"` for a specific internal module, `"lodash"` fo
 Configure logging levels using simple category-to-[`LogLevel`](https://jsr.io/@logtape/logtape/doc/~/LogLevel)
 mappings.
 
-Keys are category labels, with a trailing `/` targeting the `index` module specifically (for instance, `"/name/"`
-matches only `src/name/index.ts`). Values are type-safe `LogLevel` strings (`"trace"`, `"debug"`, `"info"`,
-`"warning"`, `"error"`, `"fatal"`):
+Keys are category labels, with a trailing `/` narrowing a key to a folder entry point alone (for instance, `"/name/"`
+matches only `src/name/index.ts`); console labels don't draw that distinction, rendering `src/name.ts` and
+`src/name/index.ts` alike. Values are type-safe `LogLevel` strings (`"trace"`, `"debug"`, `"info"`, `"warning"`,
+`"error"`, `"fatal"`):
 
 ```typescript
 import { log } from '@metreeca/tape';

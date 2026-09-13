@@ -172,9 +172,10 @@ export function log<S extends string, F extends string>(config: Config<S, F>): v
  * Configures LogTape with a single console logger using visual severity prefixes and a configuration derived from a
  * simplified representation mapping categories to minimum {@link LogLevel | log levels}:
  *
- * - Each key represents a LogTape category in label form: `"/"` (all internal code), `"/utils"`
- *   (internal module), `"lodash"` (non-scoped package), `"@scope/pkg"` (scoped package). A
- *   trailing `/` targets the `index` module (for instance, `"/name/"` matches only `src/name/index.ts`).
+ * - Each key names a LogTape category in label form: `"/"` (all internal code), `"/utils"` (internal module),
+ *   `"lodash"` (non-scoped package), `"@scope/pkg"` (scoped package). A trailing `/` narrows a key to a folder entry
+ *   point alone (for instance, `"/name/"` matches only `src/name/index.ts`); console labels don't draw that
+ *   distinction, rendering `src/name.ts` and `src/name/index.ts` alike.
  *
  * - Each value specifies the minimum {@link LogLevel} for the category.
  *

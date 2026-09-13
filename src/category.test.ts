@@ -256,21 +256,21 @@ describe("label()", () => {
 			expect(label(["/", "name"])).toBe("/name");
 		});
 
-		test("renders nested index with trailing /", () => {
-			expect(label(["/", "name", "index"])).toBe("/name/");
+		test("renders nested index after its folder", () => {
+			expect(label(["/", "name", "index"])).toBe("/name");
 		});
 
 		test("renders deep module path", () => {
 			expect(label(["/", "utils", "helper"])).toBe("/utils/helper");
 		});
 
-		test("renders deep index module with trailing /", () => {
-			expect(label(["/", "utils", "index"])).toBe("/utils/");
+		test("renders deep index module after its folder", () => {
+			expect(label(["/", "utils", "index"])).toBe("/utils");
 		});
 
-		test("distinguishes name.ts from name/index.ts", () => {
+		test("renders name.ts and name/index.ts alike", () => {
 			expect(label(["/", "name"])).toBe("/name");
-			expect(label(["/", "name", "index"])).toBe("/name/");
+			expect(label(["/", "name", "index"])).toBe("/name");
 		});
 
 		test("ignores empty trailing segments from anonymous getChild", () => {
@@ -282,28 +282,86 @@ describe("label()", () => {
 
 	describe("external packages", () => {
 
-		test("renders non-scoped package entry with trailing /", () => {
-			expect(label([ "lodash", "index"])).toBe("lodash/");
+		test("renders non-scoped package entry as the package", () => {
+			expect(label([ "lodash", "index"])).toBe("lodash");
 		});
 
 		test("renders non-scoped package module with :module", () => {
 			expect(label([ "lodash", "map"])).toBe("lodash:map");
 		});
 
-		test("renders scoped package entry with trailing /", () => {
-			expect(label(["@scope", "pkg", "index"])).toBe("@scope/pkg/");
+		test("renders scoped package entry as the package", () => {
+			expect(label(["@scope", "pkg", "index"])).toBe("@scope/pkg");
 		});
 
 		test("renders scoped package module with :module", () => {
 			expect(label(["@scope", "pkg", "utils", "helper"])).toBe("@scope/pkg:utils/helper");
 		});
 
-		test("collapses trailing /index in scoped package module", () => {
-			expect(label(["@scope", "pkg", "utils", "index"])).toBe("@scope/pkg:utils/");
+		test("drops trailing /index in scoped package module", () => {
+			expect(label(["@scope", "pkg", "utils", "index"])).toBe("@scope/pkg:utils");
 		});
 
-		test("collapses trailing /index in non-scoped package module", () => {
-			expect(label([ "lodash", "utils", "index"])).toBe("lodash:utils/");
+		test("drops trailing /index in non-scoped package module", () => {
+			expect(label([ "lodash", "utils", "index"])).toBe("lodash:utils");
+		});
+
+	});
+
+	describe("length limit", () => {
+
+		const deep = ["/", "Pipe", "_", "gear-store", "retire"];
+
+		test("renders the label in full when no length is given", () => {
+			expect(label(deep)).toBe("/Pipe/_/gear-store/retire");
+		});
+
+		test("renders the label in full when it fits", () => {
+			expect(label(deep, 25)).toBe("/Pipe/_/gear-store/retire");
+		});
+
+		test("gives up middle segments retaining as many trailing ones as fit", () => {
+			expect(label(deep, 20)).toBe("…/gear-store/retire");
+		});
+
+		test("gives up no segment when the label fits exactly", () => {
+			expect(label(["/", "a", "bc"], 5)).toBe("/a/bc");
+		});
+
+		test("gives up leading segments even when they would fit", () => {
+			expect(label(["/", "Pipe", "longmiddlepart", "x", "retire"], 20)).toBe("…/x/retire");
+		});
+
+		test("shortens index modules after their folder", () => {
+			expect(label(["/", "Pipe", "_", "gear-store", "sub", "index"], 20)).toBe("…/_/gear-store/sub");
+		});
+
+		test("clips the trailing segment when it doesn't fit whole", () => {
+			expect(label(["/", "Pipe", "verylongmodulenamehere"], 20)).toBe("…/verylongmodulenam…");
+		});
+
+		test("clips internal labels with no middle segment to give up", () => {
+			expect(label(["/", "verylongmodulenamehere"], 20)).toBe("/verylongmodulename…");
+		});
+
+		test("gives up leading module segments in scoped package labels", () => {
+			expect(label(["@scope", "pkg", "utils", "nested", "helper"], 20)).toBe("@scope/pkg:…/helper");
+		});
+
+		test("gives up leading module segments in non-scoped package labels", () => {
+			expect(label(["lodash", "utils", "nested", "helper"], 20)).toBe("lodash:…/helper");
+		});
+
+		test("clips the trailing module segment when it doesn't fit whole", () => {
+			expect(label(["lodash", "Pipe", "verylongmodulenamehere"], 20)).toBe("lodash:…/verylongmo…");
+		});
+
+		test("clips external labels with no module segment to give up", () => {
+			expect(label(["lodash", "verylongmodulenamehere"], 20)).toBe("lodash:verylongmodu…");
+		});
+
+		test("clips external labels whole when the package leaves no room for the module", () => {
+			expect(label(["@scope", "pkg", "utils", "helper"], 10)).toBe("@scope/pk…");
 		});
 
 	});

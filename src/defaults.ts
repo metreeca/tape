@@ -15,7 +15,6 @@
  */
 
 import { type Config, getConsoleSink, type LoggerConfig, type LogLevel } from "@logtape/logtape";
-import { clip } from "@metreeca/core/strings";
 import { internal, label, parse } from "./category.js";
 
 /**
@@ -35,8 +34,8 @@ const Prefixes = {
 /**
  * Fixed width of the source field in console entries.
  *
- * Overlong category labels are clipped and shorter ones padded, so severity prefix, source and message stay aligned
- * in columns across entries.
+ * Overlong labels are shortened and shorter ones padded, so that prefix, source and message stay column-aligned
+ * across entries.
  */
 const SourceWidth = 20;
 
@@ -63,20 +62,12 @@ export function defaults(config: Record<string, LogLevel>): Config<"console", ne
 
 			console: getConsoleSink({
 
-				formatter: record => {
-
-					const prefix = Prefixes[record.level] ?? "?";
-					const source = label(record.category);
-					const message = record.message.map(String).join("");
-
-					return [
-						"%s %s %s",
-						prefix.padStart(3),
-						clip(source, SourceWidth).padEnd(SourceWidth),
-						message
-					];
-
-				}
+				formatter: ({ level, category, message }) => [
+					"%s %s %s",
+					(Prefixes[level] ?? "?").padStart(3),
+					label(category, SourceWidth).padEnd(SourceWidth),
+					message.map(String).join("")
+				]
 
 			})
 

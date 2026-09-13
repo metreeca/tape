@@ -7,6 +7,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/tape/compare/v0.10.1...HEAD)
 
+### Changed
+
+- Shorten overlong console source labels by giving up leading module path segments, replaced by a single `…`, rather
+  than clipping the label tail, so that the emitting module stays legible at the fixed field width
+- Render folder entry points after their folder, dropping the trailing `/` from source labels (`/utils` in place of
+  `/utils/`, `lodash` in place of `lodash/`), so that `name.ts` and `name/index.ts` read alike while their categories
+  stay distinct; config keys keep the trailing `/` to target a folder entry point alone
+
 ## [0.10.1](https://github.com/metreeca/tape/compare/v0.10.0...v0.10.1) - 2026-09-09
 
 ### Fixed

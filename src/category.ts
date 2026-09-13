@@ -15,16 +15,20 @@
  */
 
 /**
- * Path normalization for logger hierarchies.
+ * Logger category naming.
  *
- * Converts file URLs and path segments into canonical logger paths, distinguishing
- * between project code and imported dependencies.
+ * Resolves module paths and configuration keys into canonical logger categories, keeping project code and imported
+ * dependencies apart, and renders categories back as the human-readable labels console entries are sourced by,
+ * shortened where the display field is narrower than the label.
  *
  * @internal
  * @module
  */
 
-const roots = new Set(["dist", "lib", "build", "out"]);
+import { clip } from "@metreeca/core/strings";
+
+
+const Roots = new Set(["dist", "lib", "build", "out"]);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +106,7 @@ export function category(url: string, root = "src"): readonly string[] {
 /**
  * Parses a filter config key into a category array.
  *
- * The key format mirrors the log label convention:
+ * Keys follow the {@link label} convention:
  *
  * - `""` → `[]` (root catch-all)
  * - `"/"` → `["/"]` (all internal code)
@@ -113,8 +117,9 @@ export function category(url: string, root = "src"): readonly string[] {
  * - `"@scope/pkg"` → `["@scope", "pkg"]` (scoped package)
  * - `"@scope/pkg/utils"` → `["@scope", "pkg", "utils"]` (scoped package module)
  *
- * A trailing `/` appends an explicit `"index"` segment (e.g. `"/name/"` →
- * `["/", "name", "index"]`, `"lodash/"` → `["lodash", "index"]`).
+ * A trailing `/` narrows a key to a folder entry point alone, appending an explicit `"index"` segment (for example
+ * `"/name/"` → `["/", "name", "index"]`, `"lodash/"` → `["lodash", "index"]`). This form extends the label convention
+ * rather than mirroring it: no label ends with `/`, so a key of this shape has no counterpart among the labels.
  *
  * @internal
  *
@@ -153,7 +158,7 @@ function imported(segments: string[]): readonly string[] {
 
 	// skip build directory if present, then skip redundant package name if present
 
-	const buildOffset = roots.has(segments[module]) ? 1 : 0;
+	const buildOffset = Roots.has(segments[module]) ? 1 : 0;
 	const nameOffset = segments[module+buildOffset] === packageName ? 1 : 0;
 
 	const category = clean(segments.slice(module+buildOffset+nameOffset));
@@ -192,45 +197,76 @@ function exported(segments: string[], root: string): readonly string[] {
  *
  * Format:
  *
- * - **Internal modules** (category starts with `"/"`): leading `/`, then module
- *   segments joined by `/`. A trailing `index` segment collapses to a trailing `/`.
- *   The root `["/", "index"]` renders as `/`.
+ * - **Internal modules** (category starts with `"/"`): leading `/`, then module segments joined by `/`. A folder
+ *   entry point is named after its folder, its trailing `index` segment dropped (for example `/utils`). The root
+ *   `["/", "index"]` renders as `/`.
  *
- * - **External packages** (category starts with a bare package name or a `"@scope"`
- *   segment): package name followed by `:module` when a non-index module path is
- *   present. A module path of `index` renders the package with a trailing `/` (e.g.
- *   `lodash/`). A trailing `/index` inside a multi-segment module path collapses to
- *   a trailing `/` (e.g. `@scope/pkg:utils/`).
+ * - **External packages** (category starts with a bare package name or a `"@scope"` segment): package name, followed
+ *   by `:module` where a module path beyond the entry point is present. The entry point renders the package alone
+ *   (for example `lodash`), and a trailing `index` inside a longer module path is dropped (for example
+ *   `@scope/pkg:utils`).
+ *
+ * No label ends with `/`, so `name.ts` and `name/index.ts` render alike, though their categories stay distinct for
+ * filtering.
+ *
+ * Labels longer than `length` are shortened to fit, keeping the tail of the module path, where the emitting module is
+ * named, in preference to its leading segments: every segment given up is replaced by a single `…`, which stands for
+ * the separator they were introduced by as well (at a width of 20, `/tape/utils/nested/helper` renders as
+ * `…/nested/helper` and `@scope/pkg:utils/nested/helper` as `@scope/pkg:…/helper`). Where the trailing segment
+ * doesn't fit whole, it is clipped rather than given up, its last retained code point replaced by `…`; a module path
+ * with no segment left to give up keeps its leading `/` or package prefix. Where the package name leaves no room for
+ * a module at all, the label is clipped as a whole.
  *
  * @internal
  *
  * @param category Hierarchical logger category segments
+ * @param length The maximum length in code points of the rendered label; `0` or a negative value renders the label in
+ *     full; defaults to `0`
  *
- * @returns Human-readable label suitable for log display
+ * @returns Human-readable label suitable for log display, no longer than `length` code points
  */
-export function label(category: readonly string[]): string {
+export function label(category: readonly string[], length = 0): string {
 
 	const segments = category.filter(s => s);
 
-	if ( segments[0] === internal ) {
+	return segments[0] === internal
+		? internally(prune(segments.slice(1)))
+		: externally(segments);
 
-		const module = segments.slice(1).join("/").replace(/(^|\/)index$/, "$1");
 
-		return `/${module}`;
+	function internally(path: readonly string[]): string {
 
-	} else {
+		return shorten(path, "/", length);
 
-		const scoped = segments[0]?.startsWith(external);
-		const pkg = scoped ? `${segments[0]}/${segments[1]}` : segments[0] ?? "";
-		const module = segments.slice(scoped ? 2 : 1).join("/");
+	}
 
-		if ( module === "" ) {
-			return pkg;
-		} else if ( module === "index" ) {
-			return `${pkg}/`;
-		} else {
-			return `${pkg}:${module.replace(/\/index$/, "/")}`;
-		}
+	function externally(path: readonly string[]): string {
+
+		const scoped = path[0]?.startsWith(external);
+		const pkg = scoped ? `${path[0]}/${path[1]}` : path[0] ?? "";
+		const module = prune(path.slice(scoped ? 2 : 1));
+
+		const room = length-pkg.length-1; // what the module is left with, after the package and its ":" separator
+		const rendered = module.length === 0 ? pkg : `${pkg}:${shorten(module, "", room)}`;
+
+		return length <= 0 || room > 0 ? rendered : clip(rendered, length); // no room: clip the label as a whole
+	}
+
+
+	function prune(path: readonly string[]): readonly string[] {
+
+		return path.at(-1) === "index" ? path.slice(0, -1) : path;
+
+	}
+
+	function shorten(path: readonly string[], lead: string, room: number): string {
+
+		const whole = `${lead}${path.join("/")}`;
+		const shorter = path.slice(1).map((_, given) => `…/${path.slice(given+1).join("/")}`); // one more given up each
+
+		return room <= 0 ? whole
+			: [whole, ...shorter].find(rendering => rendering.length <= room) // the longest that fits
+				?? clip(shorter.at(-1) ?? whole, room); // none fits whole: the shortest, clipped
 
 	}
 
@@ -242,17 +278,19 @@ export function label(category: readonly string[]): string {
 /**
  * Cleans and filters path segments.
  *
- * Splits segments on "/", removes file extensions and trailing slashes,
- * filters out empty segments. The `"index"` segment is preserved to
- * distinguish sibling modules (e.g., `name.ts` vs `name/index.ts`).
+ * Removes file extensions and trailing slashes, flattening segments that carry an embedded `/` and dropping empty
+ * ones. The `"index"` segment is retained, so that sibling modules stay distinguishable (for example `name.ts`
+ * against `name/index.ts`).
  *
- * @param segments Path segments to clean
+ * @param path Path segments to clean
  *
  * @returns Filtered array of cleaned segments
  */
-function clean(segments: readonly string[]): readonly string[] {
-	return segments
+function clean(path: readonly string[]): readonly string[] {
+
+	return path
 		.flatMap(s => s.split("/"))
 		.map(s => s.replace(/(?:\.\w+)*\/*$/, ""))
 		.filter(s => s);
+
 }
