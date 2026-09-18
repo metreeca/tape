@@ -14,6 +14,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Render folder entry points after their folder, dropping the trailing `/` from source labels (`/utils` in place of
   `/utils/`, `lodash` in place of `lodash/`), so that `name.ts` and `name/index.ts` read alike while their categories
   stay distinct; config keys keep the trailing `/` to target a folder entry point alone
+- Realign to the renamed `@metreeca/core` values module, raising the minimum supported version: `equals` is imported
+  from `@metreeca/core/values` in place of `@metreeca/core/structures`
 
 ## [0.10.1](https://github.com/metreeca/tape/compare/v0.10.0...v0.10.1) - 2026-09-09
 
