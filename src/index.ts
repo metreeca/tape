@@ -388,7 +388,8 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
  * Formats a value as a readable report.
  *
  * Reports numbers with grouped digits, strings as quoted literals with their invisible characters surfaced as escapes,
- * errors through their message, functions through their name, and every other value through its string representation.
+ * errors through their message, functions through their name, plain objects and arrays as compact JSON, and every
+ * other value, class instances included, through the string representation it defines for itself.
  *
  * **Numbers**
  *
@@ -426,25 +427,60 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
  * empty because no declaration, binding or property definition supplied one, take the `function` keyword in place of a
  * name and are reported as `function()`.
  *
+ * **Plain Objects and Arrays**
+ *
+ * Plain objects, null-prototype objects included, and arrays are reported as compact JSON. Failures are often thrown
+ * as structured values, such as RFC 9457 problem details, and JSON shows what they carry rather than `[object Object]`.
+ * Error-like plain objects are therefore reported as JSON too, rather than through their message.
+ *
+ * JSON leaves out the members it can't represent, such as functions and `undefined` values. String values carry only
+ * the escapes JSON defines, so invisible format characters reach the log as they are: report such strings separately.
+ *
  * **Other Values**
  *
- * Every other value is reported through its string representation, error-like values that are not `Error` instances
- * included, whatever message-like properties they may carry.
+ * Every other value is reported through its string representation, class instances included. Instances such as dates
+ * and URLs define a readable representation of their own, while their properties would expose internals instead.
+ *
+ * **Unreadable Values**
+ *
+ * A value that can't be inspected or converted without throwing, such as a revoked proxy, an object whose string
+ * conversion fails, or a plain object JSON can't serialise because it is cyclic or holds a `bigint`, is reported as
+ * `[unreadable value]`, so that reporting a value never throws in the logging code. The placeholder is never clipped.
  *
  * @param value The value to report
- * @param length The maximum length in code points of the reported string content, counted before escaping; longer
- *     content is clipped, with the last retained code point replaced by an ellipsis; `0` or a negative value disables
- *     clipping; ignored for values other than strings; defaults to `0`
+ * @param length The maximum length in code points of the reported string content, counted before escaping, or of the
+ *     reported JSON, counted after serialisation; longer content is clipped, with the last retained code point replaced
+ *     by an ellipsis; `0` or a negative value disables clipping; ignored for values other than strings, plain objects
+ *     and arrays, and for the `[unreadable value]` placeholder; defaults to `0`
  *
  * @returns The formatted number, quoted and escaped string literal, error message, function name with an empty
- *     argument list, or string representation of `value`
+ *     argument list, JSON serialisation, or string representation of `value`, or the `[unreadable value]` placeholder
+ *     if `value` can't be inspected or converted to a string without throwing an error
  */
 export function report(value: unknown, length?: number): string {
 
-	return isNumber(value) ? value.toLocaleString("en-US")
-		: isString(value) ? `"${escape(clip(value, length), QuotePattern)}"`
-			: isError(value) ? value.message
-				: isFunction(value) ? `${value.name || "function"}()`
-					: String(value);
+	try {
+
+		return isNumber(value) ? value.toLocaleString("en-US")
+			: isString(value) ? `"${escape(clip(value, length), QuotePattern)}"`
+				: isError(value) ? value.message
+					: isFunction(value) ? `${value.name || "function"}()`
+						: isPlain(value) ? clip(JSON.stringify(value), length)
+							: String(value);
+
+	} catch { // revoked proxies, throwing proxy traps, string conversions or JSON serialisations
+
+		return "[unreadable value]";
+
+	}
+
+
+	function isPlain(value: unknown): value is object {
+
+		return isArray(value)
+			|| isObject(value)
+			|| value !== null && typeof value === "object" && Object.getPrototypeOf(value) === null;
+
+	}
 
 }

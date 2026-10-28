@@ -7,6 +7,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased](https://github.com/metreeca/tape/compare/v0.12.0...HEAD)
 
+### Changed
+
+- `report()` formats plain objects, null-prototype objects and arrays as compact JSON, clipped like strings by the
+  optional `length`, in place of their `[object Object]` string representation, so that structured failures such as
+  RFC 9457 problem details show what they carry; error-like plain objects are reported as JSON rather than by message
+- `report()` returns the `[unreadable value]` placeholder for values that can't be inspected or converted without
+  throwing, such as revoked proxies and cyclic plain objects, rather than throwing from the logging code
+
 ## [0.12.0](https://github.com/metreeca/tape/compare/v0.11.1...v0.12.0) - 2026-10-19
 
 ### Changed

@@ -410,11 +410,60 @@ describe("report()", () => {
 			expect(report(function aVeryLongName() {}, 8)).toBe("aVeryLongName()");
 		});
 
+		it("should report plain objects and arrays as JSON", () => {
+			expect(report({ status: 503, detail: "Service Unavailable" }))
+				.toBe("{\"status\":503,\"detail\":\"Service Unavailable\"}");
+			expect(report({ message: "boom" })).toBe("{\"message\":\"boom\"}");
+			expect(report(Object.assign(Object.create(null), { key: "value" }))).toBe("{\"key\":\"value\"}");
+			expect(report([1, "a", { b: true }])).toBe("[1,\"a\",{\"b\":true}]");
+		});
+
+		it("should clip overlong JSON", () => {
+			expect(report({ key: "a very long value" }, 8)).toBe(`{"key":${String.fromCodePoint(0x2026)}`);
+		});
+
+		it("should report plain objects that can't be serialised through a placeholder", () => {
+
+			const cyclic: { self?: unknown } = {};
+
+			cyclic.self = cyclic;
+
+			expect(report(cyclic)).toBe("[unreadable value]");
+			expect(report({ big: 1n })).toBe("[unreadable value]");
+			expect(report(Object.assign(Object.create(null), { big: 1n }))).toBe("[unreadable value]");
+			expect(report(cyclic, 8)).toBe("[unreadable value]");
+
+		});
+
 		it("should report other values through their string representation", () => {
 			expect(report(undefined)).toBe("undefined");
 			expect(report(null)).toBe("null");
 			expect(report(true)).toBe("true");
-			expect(report({ message: "boom" })).toBe("[object Object]");
+			expect(report(new URL("https://example.org/path"))).toBe("https://example.org/path");
+		});
+
+		it("should report values that can't be inspected through a placeholder", () => {
+
+			const revoked = Proxy.revocable({}, {});
+
+			revoked.revoke();
+
+			const trapped = new Proxy({}, {
+				getPrototypeOf() { throw new Error("trapped"); }
+			});
+
+			class Unconvertible {
+
+				toString(): string {
+					throw new Error("unconvertible");
+				}
+
+			}
+
+			expect(report(revoked.proxy)).toBe("[unreadable value]");
+			expect(report(trapped)).toBe("[unreadable value]");
+			expect(report(new Unconvertible())).toBe("[unreadable value]");
+
 		});
 
 	});

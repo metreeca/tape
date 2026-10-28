@@ -221,10 +221,14 @@ logger.error(`import failed / ${report(error)}`); // import failed / connection 
 // Functions are reported through their name
 
 logger.debug(`retrying ${report(fetchUsers)}`); // retrying fetchUsers()
+
+// Plain objects and arrays are reported as JSON
+
+logger.error(`request failed / ${report({ status: 503 })}`); // request failed / {"status":503}
 ```
 
-Numbers are formatted with grouped digits, strings are reported as quoted literals, errors through their message,
-functions through their name, and any other value through its string representation.
+Numbers are formatted with grouped digits, strings as quoted literals, errors through their message, functions through
+their name, plain objects and arrays as compact JSON, and any other value through its string representation.
 
 Digit grouping follows the `en-US` locale, whatever the ambient locale, so that reports of the same value are
 comparable across systems.
@@ -235,8 +239,9 @@ so that nothing in the content can hide or corrupt it: escapes take the two-char
 (`\"`, `\\`, `\b`, `\f`, `\n`, `\r`, `\t`) and the `\uXXXX` / `\UXXXXXXXX` numeric form otherwise. Characters that
 render as part of a neighbouring glyph, like the combining marks and the variation selectors, are reported as they are.
 
-The optional `length` argument clips overlong string content to a maximum number of code points, counted before
-escaping, replacing the last retained one with an ellipsis.
+The optional `length` argument clips overlong string content or JSON to a maximum number of code points, replacing the
+last retained one with an ellipsis. String content is measured before escaping and JSON after serialisation, so
+JSON escapes count towards the limit while string escapes don't; other values are never clipped.
 
 Error messages are reported without the class name their string representation would prefix them with, as the level and
 the context of the log entry already state that a failure is being reported. They are reported as they are, neither
@@ -247,6 +252,18 @@ Functions are reported through their name followed by an empty argument list, cl
 included, rather than through the source text their string representation would expose. Names are reported as they are,
 neither escaped nor clipped; anonymous functions take the `function` keyword in place of a name and are reported as
 `function()`.
+
+Plain objects and arrays are reported as compact JSON, so that structured failures such as RFC 9457 problem details
+show what they carry rather than `[object Object]`. JSON leaves out the members it can't represent, such as functions
+and `undefined` values. String values carry only the escapes JSON defines, so invisible format characters reach the
+log as they are: report the strings whose invisible content matters separately, so their characters surface as escapes.
+
+Class instances such as dates and URLs are reported through their own string representation, which is readable, while
+their properties would expose internal state rather than the value they stand for.
+
+Values that can't be inspected or converted without throwing, such as revoked proxies or plain objects that JSON can't
+serialise because they are cyclic or hold a `bigint`, are reported as `[unreadable value]`, so that formatting a value
+for the log never raises a failure of its own; the placeholder is never clipped, whatever the `length`.
 
 # Support
 
